@@ -6,7 +6,7 @@ spritesheet exporter from animation timeline
 
 from krita import Extension, krita
 
-from . import uispritesheetexporter
+from . import se_ui
 # manages the dialog that lets you
 # set user preferences before applying the script
 
@@ -38,7 +38,7 @@ class spritesheetExporterExtension(Extension):
         # doesn't show tooltip on mouse hover. Why?
 
         # when you click on the script in the menu it opens the dialog window
-        self.ui = uispritesheetexporter.UISpritesheetExporter()
+        self.ui = se_ui.UISpritesheetExporter()
         exportSs.triggered.connect(self.ui.showExportDialog)
 
 

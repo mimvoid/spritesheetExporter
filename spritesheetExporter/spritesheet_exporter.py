@@ -2,7 +2,7 @@ from krita import krita, InfoObject
 from math import sqrt, ceil, floor
 import json
 
-from . import uispritesheetexporter
+from . import se_ui
 # manages the dialog that lets you set user preferences
 # before applying the script
 

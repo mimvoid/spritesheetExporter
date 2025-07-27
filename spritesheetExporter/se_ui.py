@@ -28,7 +28,7 @@ import krita
 
 # we want paths to work whether it's windows or unix
 from pathlib import Path
-from . import spritesheetexporter
+from . import spritesheet_exporter
 
 
 class describedWidget:
@@ -43,7 +43,7 @@ class UISpritesheetExporter(object):
         # here we don't need super().__init__(parent)
         # maybe it's only for who inherits extensions?
         self.app = krita.Krita.instance()
-        self.exp = spritesheetexporter.SpritesheetExporter()
+        self.exp = spritesheet_exporter.SpritesheetExporter()
 
         # the main window
         self.mainDialog = QDialog()
