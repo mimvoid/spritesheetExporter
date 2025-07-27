@@ -462,7 +462,7 @@ class UISpritesheetExporter:
         self.exp.exportDir = Path(self.exportPath)
         self.exp.layersAsAnimation = self.layersAsAnimation.isChecked()
         self.exp.writeTextureAtlas = self.writeTextureAtlas.isChecked()
-        self.exp.isDirectionHorizontal = self.horDir.isChecked()
+        self.exp.isHorizontal = self.horDir.isChecked()
         self.exp.rows = self.rows.value()
         self.exp.columns = self.columns.value()
         self.exp.start = self.start.value()

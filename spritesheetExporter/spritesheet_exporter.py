@@ -13,7 +13,7 @@ class SpritesheetExporter:
     exportDir: Path = Path.home()
     spritesExportDir: Path = defaultPath
 
-    isDirectionHorizontal: bool = True
+    isHorizontal: bool = True
     defaultTime: int = -1
     defaultSpace: int = 0
     rows: int = defaultSpace
@@ -31,43 +31,41 @@ class SpritesheetExporter:
     offLayers: int = 0
 
     def positionLayer(self, layer: Node, imgNum: int, width: int, height: int):
-        distance = self.columns if self.isDirectionHorizontal else self.rows
+        distance = self.columns if self.isHorizontal else self.rows
         layer.move(
             int((imgNum % distance) * width),
             int((imgNum // distance) * height),
         )
 
-    def checkLayerEnd(self, layer: Node, doc: Document):
+    def checkLayer(self, layer: Node, doc: Document, start: bool):
         if not layer.visible():
             return
 
         if layer.animated():
-            frame = doc.fullClipRangeEndTime()
-            while not (layer.hasKeyframeAtTime(frame) or frame < 0):
-                frame -= 1
-            if self.end < frame:
-                self.end = frame
+            if start:
+                frame = 0
+                while not (
+                    layer.hasKeyframeAtTime(frame) or frame > doc.fullClipRangeEndTime()
+                ):
+                    frame += 1
+                if self.start > frame:
+                    self.start = frame
+            else:
+                frame = doc.fullClipRangeEndTime()
+                while not (layer.hasKeyframeAtTime(frame) or frame < 0):
+                    frame -= 1
+                if self.end < frame:
+                    self.end = frame
 
         # if it was a group layer, we also check its children
         for child in layer.childNodes():
-            self.checkLayerEnd(child, doc)
+            self.checkLayer(child, doc, start)
+
+    def checkLayerEnd(self, layer: Node, doc: Document):
+        self.checkLayer(layer, doc, False)
 
     def checkLayerStart(self, layer: Node, doc: Document):
-        if not layer.visible():
-            return
-
-        if layer.animated():
-            frame = 0
-            while not (
-                layer.hasKeyframeAtTime(frame) or frame > doc.fullClipRangeEndTime()
-            ):
-                frame += 1
-            if self.start > frame:
-                self.start = frame
-
-        # if it was a group layer, we also check its children
-        for child in layer.childNodes():
-            self.checkLayerStart(child, doc)
+        self.checkLayer(layer, doc, True)
 
     # get actual animation duration
     def setStartEndFrames(self):
@@ -105,7 +103,7 @@ class SpritesheetExporter:
     # - position each exported frame in the new doc according to its name
     # - export the doc (aka the spritesheet)
     # - remove tmp folder if needed
-    def export(self, debugging=False):
+    def export(self, debug=False):
         def debugPrint(message: str, usingTerminal=True):
             if usingTerminal:
                 print(message)
@@ -125,22 +123,22 @@ class SpritesheetExporter:
             doc.waitForDone()
             imagePath = str(spritesExportPath(fileNum(num) + ".png"))
             doc.exportImage(imagePath, InfoObject())
-            if debugging:
+            if debug:
                 debugPrint(f"exporting frame {num} at {imagePath}")
 
         def getLayerState(layer):
             if len(layer.childNodes()) != 0:
                 for child in layer.childNodes():
-                    getLayerState(child, debugging)
+                    getLayerState(child, debug)
             else:
                 self.layersStates.append(layer.visible())
                 self.layersList.append(layer)
                 if not layer.visible():
                     self.offLayers += 1
-                if debugging:
+                if debug:
                     debugPrint(f"saving state {layer.visible()} of layer {layer}")
 
-        if debugging:
+        if debug:
             debugPrint("\nExport spritesheet start.")
 
         # clearing lists in case the script is used several times
@@ -189,7 +187,7 @@ class SpritesheetExporter:
             if self.end == self.defaultTime or self.start == self.defaultTime:
                 self.setStartEndFrames()
             doc.setCurrentTime(self.start)
-            if debugging:
+            if debug:
                 ver = Application.version()
                 isNewVersion = int(ver[0]) > 4 or (
                     int(ver[0]) == 4 and int(ver[2]) >= 2
@@ -205,7 +203,7 @@ class SpritesheetExporter:
             frameIDNum = self.start
             # export frames
             while doc.currentTime() <= self.end:
-                exportFrame(frameIDNum, doc, debugging)
+                exportFrame(frameIDNum, doc, debug)
                 frameIDNum += self.step
                 doc.setCurrentTime(frameIDNum)
             # reset
@@ -216,7 +214,7 @@ class SpritesheetExporter:
             # save layers state (visible or not)
             layers = doc.topLevelNodes()
             for layer in layers:
-                getLayerState(layer, debugging)
+                getLayerState(layer, debug)
             framesNum = len(self.layersList)
 
             # for compatibility between animated frames as frames
@@ -234,7 +232,7 @@ class SpritesheetExporter:
                     self.layersList[frameIDNum].setVisible(True)
                     # refresh the canvas
                     doc.refreshProjection()
-                    exportFrame(frameIDNum, doc, debugging)
+                    exportFrame(frameIDNum, doc, debug)
                     self.layersList[frameIDNum].setVisible(False)
 
                 frameIDNum += self.step
@@ -250,7 +248,7 @@ class SpritesheetExporter:
             while frameIDNum < len(self.layersStates):
                 self.layersList[frameIDNum].setVisible(self.layersStates[frameIDNum])
                 frameIDNum += 1
-                if debugging:
+                if debug:
                     debugPrint(f"restoring layer {frameIDNum}")
             frameIDNum = 0
 
@@ -274,7 +272,7 @@ class SpritesheetExporter:
             # or one row?
             # self.rows = 1
             # self.columns = framesNum
-            if debugging:
+            if debug:
                 debugPrint(f"self.rows: {self.rows}; self.columns: {self.columns}")
 
         # if only one is specified, guess the other
@@ -300,7 +298,7 @@ class SpritesheetExporter:
             profile,
             res,
         )
-        if debugging:
+        if debug:
             debugPrint(f"new doc name: {sheet.name()}")
             debugPrint(f"old doc width: {width}")
             debugPrint(f"num of frames: {framesNum}")
@@ -331,7 +329,7 @@ class SpritesheetExporter:
                 self.layersAsAnimation and self.layersStates[frameIDNum]
             ):
                 img = str(spritesExportPath(fileNum(frameIDNum) + ".png"))
-                if debugging:
+                if debug:
                     debugPrint(f"managing file {frameIDNum} at {img}")
                 layer = sheet.createFileLayer(img, img, "ImageToSize")
                 root_node.addChildNode(layer, None)
@@ -348,7 +346,7 @@ class SpritesheetExporter:
                 if self.removeTmp:
                     # removing temporary sprites exports
                     Path(img).unlink()
-                if debugging:
+                if debug:
                     debugPrint(
                         "adding to spritesheet, image "
                         + str(frameIDNum - self.start)
@@ -375,7 +373,7 @@ class SpritesheetExporter:
 
         # export the document to the export location
         sheet.setBatchmode(True)  # so it won't show the export dialog window
-        if debugging:
+        if debug:
             debugPrint(f"exporting spritesheet to {sheetExportPath()}")
 
         sheet.exportImage(str(sheetExportPath(".png")), InfoObject())
@@ -388,5 +386,5 @@ class SpritesheetExporter:
         if self.removeTmp and addedFolder:
             self.spritesExportDir.rmdir()
 
-        if debugging:
+        if debug:
             debugPrint("All done!")
