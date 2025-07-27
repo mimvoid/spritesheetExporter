@@ -78,8 +78,8 @@ class SpritesheetExporter:
 
         # only from version 4.2.x on can we use hasKeyframeAtTime;
         # in earlier versions we just export from 0 to 100 as default
-        ver = Application.version()
-        isNewVersion = int(ver[0]) > 4 or (int(ver[0]) == 4 and int(ver[2]) >= 2)
+        major, minor, _ = Application.version().split(".")
+        isNewVersion = int(major) > 4 or (int(major) == 4 and int(minor) >= 2)
 
         # get the last frame smaller than
         # the clip end time (whose default is 100)
