@@ -4,7 +4,7 @@ spritesheet exporter from animation timeline
 
 """
 
-from krita import (Extension, krita)
+from krita import Extension, krita
 
 from . import uispritesheetexporter
 # manages the dialog that lets you
@@ -12,7 +12,6 @@ from . import uispritesheetexporter
 
 
 class spritesheetExporterExtension(Extension):
-
     # Always initialise the superclass.
     # This is necessary to create the underlying C++ object
     def __init__(self, parent):
@@ -27,9 +26,9 @@ class spritesheetExporterExtension(Extension):
     # don't forget to activate the script in krita's preferences
     # or it won't show
     def createActions(self, window):
-        exportSs = window.createAction("pykrita_spritesheetExporter",
-                                       "Export As Spritesheet",
-                                       "tools/scripts")
+        exportSs = window.createAction(
+            "pykrita_spritesheetExporter", "Export As Spritesheet", "tools/scripts"
+        )
         # parameter 1 =  the name that Krita uses to identify the action
         # (where is it used though? For key shortcuts?)
         # parameter 2 = this script's menu entry name
