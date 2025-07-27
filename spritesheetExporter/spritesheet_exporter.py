@@ -154,27 +154,26 @@ class SpritesheetExporter:
         if self.spritesExportDir == DEFAULT_PATH:
             self.spritesExportDir = sheetExportPath("_sprites")
 
-        if self.forceNew and self.spritesExportDir.exists():
-            exportNum = 0
+        if self.spritesExportDir.exists():
+            if self.forceNew:
+                # if forceNew, spritesExportDir's value is taken
+                # from the user-set choices in the dialog
 
-            parentPath = self.spritesExportDir.parent
-            folder = str(self.spritesExportDir.parts[-1])
+                exportNum = 0
 
-            def exportCandidate():
-                return parentPath.joinpath(folder + str(exportNum))
+                parentPath = self.spritesExportDir.parent
+                folder = str(self.spritesExportDir.parts[-1])
 
-            # in case the user has a folder with the exact same name
-            # as my temporary one
-            while exportCandidate().exists():
-                exportNum += 1
-            self.spritesExportDir = exportCandidate()
+                def exportCandidate():
+                    return parentPath.joinpath(folder + str(exportNum))
 
-        # if forceNew, spritesExportDir's value is taken
-        # from the user-set choices in the dialog
-
-        # this will always be called if not forceNew
-        # because it will always create a new export folder
-        if not self.spritesExportDir.exists():
+                # in case the user has a folder with the exact same name as the temporary one
+                while exportCandidate().exists():
+                    exportNum += 1
+                self.spritesExportDir = exportCandidate()
+        else:
+            # this will always be called if not forceNew
+            # because it will always create a new export folder
             addedFolder = True
             self.spritesExportDir.mkdir()
 
@@ -182,7 +181,37 @@ class SpritesheetExporter:
         doc = Krita.instance().activeDocument()
         doc.setBatchmode(True)  # so it won't show the export dialog window
 
-        if not self.layersAsAnimation:
+        if self.layersAsAnimation:
+            # save layers state (visible or not)
+            layers = doc.topLevelNodes()
+            for layer in layers:
+                getLayerState(layer, debug)
+            framesNum = len(self.layersList)
+
+            # for compatibility between animated frames as frames
+            # and layers as frames
+            self.start = 0
+            self.end = framesNum - 1
+
+            # hide all layers
+            for layer in self.layersList:
+                layer.setVisible(False)
+
+            # export each visible layer
+            for i in range(0, len(self.layersStates), self.step):
+                if not self.layersStates[i]:
+                    continue
+                self.layersList[i].setVisible(True)
+                doc.refreshProjection() # refresh the canvas
+                exportFrame(i, doc)
+                self.layersList[i].setVisible(False)
+
+            # restore layers state
+            for i in range(0, len(self.layersStates)):
+                self.layersList[i].setVisible(self.layersStates[i])
+                if debug:
+                    debugPrint(f"restoring layer {i}")
+        else:
             # check self.end and self.start values
             # and if needed input default value
             if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
@@ -201,57 +230,11 @@ class SpritesheetExporter:
                     f"export start: {self.start}; export end: {self.end}; export length: {self.end - self.start}"
                 )
             framesNum = ((self.end + 1) - self.start) / self.step
-            frameIDNum = self.start
+
             # export frames
-            while doc.currentTime() <= self.end:
-                exportFrame(frameIDNum, doc, debug)
-                frameIDNum += self.step
-                doc.setCurrentTime(frameIDNum)
-            # reset
-            frameIDNum = self.start
-
-        else:
-            frameIDNum = 0
-            # save layers state (visible or not)
-            layers = doc.topLevelNodes()
-            for layer in layers:
-                getLayerState(layer, debug)
-            framesNum = len(self.layersList)
-
-            # for compatibility between animated frames as frames
-            # and layers as frames
-            self.start = 0
-            self.end = len(self.layersList) - 1
-
-            # hide all layers
-            for layer in self.layersList:
-                layer.setVisible(False)
-
-            # export each visible layer
-            while frameIDNum < len(self.layersStates):
-                if self.layersStates[frameIDNum]:
-                    self.layersList[frameIDNum].setVisible(True)
-                    # refresh the canvas
-                    doc.refreshProjection()
-                    exportFrame(frameIDNum, doc, debug)
-                    self.layersList[frameIDNum].setVisible(False)
-
-                frameIDNum += self.step
-            #            for layer in self.layersStates:
-            #                if (layersStates[layersList.index(layer)]):
-            #                    layer.setVisible(True)
-            #                    exportFrame(frameIDNum, doc)
-            #                    layer.setVisible(False)
-            #                    frameIDNum += self.step
-
-            # restore layers state
-            frameIDNum = 0
-            while frameIDNum < len(self.layersStates):
-                self.layersList[frameIDNum].setVisible(self.layersStates[frameIDNum])
-                frameIDNum += 1
-                if debug:
-                    debugPrint(f"restoring layer {frameIDNum}")
-            frameIDNum = 0
+            for i in range(self.start, self.end + 1, self.step):
+                exportFrame(i, doc)
+                doc.setCurrentTime(i + self.step)
 
         # getting current document info
         # so we can copy it over to the new document
@@ -266,28 +249,18 @@ class SpritesheetExporter:
         # debugPrint(dir(doc))
 
         # getting a default value for rows and columns
-        if (self.rows == DEFAULT_SPACE) and (self.columns == DEFAULT_SPACE):
-            # square fit
-            self.columns = ceil(sqrt(framesNum - self.offLayers))
-            self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
-            # or one row?
-            # self.rows = 1
-            # self.columns = framesNum
-            if debug:
-                debugPrint(f"self.rows: {self.rows}; self.columns: {self.columns}")
-
-        # if only one is specified, guess the other
-        elif self.rows == DEFAULT_SPACE:
-            self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
-
-        # Though if I have to guess the number of columns,
-        # it may also change the (user-set) number of rows.
-        # For example, if you want ten rows from twelve sprites
-        # instead of two rows of two and eight of one,
-        # you'll have six rows of two
+        if self.rows == DEFAULT_SPACE:
+            if self.columns == DEFAULT_SPACE:
+                self.columns = ceil(sqrt(framesNum - self.offLayers))  # square fit
+            self.rows = ceil((framesNum - self.offLayers) / self.columns)
         elif self.columns == DEFAULT_SPACE:
-            self.columns = ceil(float(framesNum - self.offLayers) / self.rows)
-            self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
+            # Though if I have to guess the number of columns,
+            # it may also change the (user-set) number of rows.
+            # For example, if you want ten rows from twelve sprites
+            # instead of two rows of two and eight of one,
+            # you'll have six rows of two
+            self.columns = ceil((framesNum - self.offLayers) / self.rows)
+            self.rows = ceil((framesNum - self.offLayers) / self.columns)
 
         # creating a new document where we'll put our sprites
         sheet = Krita.instance().createDocument(
@@ -299,6 +272,7 @@ class SpritesheetExporter:
             profile,
             res,
         )
+
         if debug:
             debugPrint(f"new doc name: {sheet.name()}")
             debugPrint(f"old doc width: {width}")
@@ -318,59 +292,55 @@ class SpritesheetExporter:
         # adding our sprites to the new document
         # and moving them to the right position
         root_node = sheet.rootNode()
-        root_node.childNodes()[0].setVisible(
-            False
-        )  # hide the default layer filled with white
+
+        # hide the default layer filled with white
+        root_node.childNodes()[0].setVisible(False)
         invisibleLayersNum = 0
 
         textureAtlas = {"frames": []}
-        while frameIDNum <= self.end:
+        start = 0 if self.layersAsAnimation else self.start
+
+        for i in range(start, self.end + 1, self.step):
             doc.waitForDone()
-            if not self.layersAsAnimation or (
-                self.layersAsAnimation and self.layersStates[frameIDNum]
-            ):
-                img = str(spritesExportPath(fileNum(frameIDNum) + ".png"))
-                if debug:
-                    debugPrint(f"managing file {frameIDNum} at {img}")
-                layer = sheet.createFileLayer(img, img, "ImageToSize")
-                root_node.addChildNode(layer, None)
-                self.positionLayer(
-                    layer=layer,
-                    imgNum=(
-                        ((frameIDNum - invisibleLayersNum) - self.start) / self.step
-                    ),
-                    width=width,
-                    height=height,
-                )
-                # refresh canvas so the layers actually do show
-                sheet.refreshProjection()
-                if self.removeTmp:
-                    # removing temporary sprites exports
-                    Path(img).unlink()
-                if debug:
-                    debugPrint(
-                        "adding to spritesheet, image "
-                        + str(frameIDNum - self.start)
-                        + " name: "
-                        + img
-                        + " at pos: "
-                        + str(layer.position())
-                    )
-                if self.writeTextureAtlas:
-                    textureAtlas["frames"].append(
-                        {
-                            "filename": frameIDNum,
-                            "frame": {
-                                "x": layer.position().x(),
-                                "y": layer.position().y(),
-                                "w": width,
-                                "h": height,
-                            },
-                        }
-                    )
-            else:
+
+            if self.layersAsAnimation and not self.layersStates[i]:
                 invisibleLayersNum += 1
-            frameIDNum += self.step
+                continue
+
+            img = str(spritesExportPath(fileNum(i) + ".png"))
+            if debug:
+                debugPrint(f"managing file {i} at {img}")
+
+            layer = sheet.createFileLayer(img, img, "ImageToSize")
+            root_node.addChildNode(layer, None)
+            self.positionLayer(
+                layer=layer,
+                imgNum=(((i - invisibleLayersNum) - self.start) / self.step),
+                width=width,
+                height=height,
+            )
+
+            # refresh canvas so the layers actually do show
+            sheet.refreshProjection()
+
+            if self.removeTmp:
+                Path(img).unlink()  # removing temporary sprites exports
+            if debug:
+                debugPrint(
+                    f"adding to spritesheet, image {i - self.start} name: {img} at pos: {layer.position()}"
+                )
+            if self.writeTextureAtlas:
+                textureAtlas["frames"].append(
+                    {
+                        "filename": i,
+                        "frame": {
+                            "x": layer.position().x(),
+                            "y": layer.position().y(),
+                            "w": width,
+                            "h": height,
+                        },
+                    }
+                )
 
         # export the document to the export location
         sheet.setBatchmode(True)  # so it won't show the export dialog window
