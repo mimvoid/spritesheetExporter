@@ -1,15 +1,12 @@
-from krita import krita, InfoObject
-from math import sqrt, ceil, floor
+from krita import Krita, InfoObject
+from builtins import i18n, Application
+from math import sqrt, ceil
 import json
-
-from . import se_ui
-# manages the dialog that lets you set user preferences
-# before applying the script
 
 from pathlib import Path
 # for path operations (who'd have guessed)
 
-from PyQt5.QtWidgets import QWidget, QLabel, QMessageBox
+from PyQt5.QtWidgets import QWidget, QMessageBox
 # for debug messages
 
 

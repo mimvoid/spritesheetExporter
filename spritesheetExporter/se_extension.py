@@ -4,7 +4,8 @@ spritesheet exporter from animation timeline
 
 """
 
-from krita import Extension, krita
+from krita import Extension, Krita
+from builtins import Scripter
 
 from . import se_ui
 # manages the dialog that lets you

@@ -9,12 +9,9 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QFrame,
     QPushButton,
-    QVBoxLayout,
     QHBoxLayout,
     QFileDialog,
     QLabel,
-    QPushButton,
-    QInputDialog,
     QSpinBox,
     QDialog,
     QLineEdit,
@@ -22,9 +19,9 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDialogButtonBox,
     QSpacerItem,
-    QSizePolicy,
 )
 import krita
+from builtins import i18n
 
 # we want paths to work whether it's windows or unix
 from pathlib import Path
