@@ -105,6 +105,10 @@ class SpritesheetExporter:
     # - export the doc (aka the spritesheet)
     # - remove tmp folder if needed
     def export(self, debug=False):
+        doc = Krita.instance().activeDocument()
+        if not doc:
+            return
+
         def debugPrint(message: str, usingTerminal=True):
             if usingTerminal:
                 print(message)
@@ -120,7 +124,7 @@ class SpritesheetExporter:
         def fileNum(num):
             return "_" + str(num).zfill(3)
 
-        def exportFrame(num, doc: Document):
+        def exportFrame(num):
             doc.waitForDone()
             imagePath = str(spritesExportPath(fileNum(num) + ".png"))
             doc.exportImage(imagePath, InfoObject())
@@ -177,8 +181,6 @@ class SpritesheetExporter:
             addedFolder = True
             self.spritesExportDir.mkdir()
 
-        # render animation in the sprites export folder
-        doc = Krita.instance().activeDocument()
         doc.setBatchmode(True)  # so it won't show the export dialog window
 
         if self.layersAsAnimation:
