@@ -7,12 +7,14 @@ spritesheet exporter from animation timeline
 from krita import Extension, Krita
 from builtins import Scripter
 
-from . import se_ui
+from .se_ui import UISpritesheetExporter
 # manages the dialog that lets you
 # set user preferences before applying the script
 
 
 class SpritesheetExporterExtension(Extension):
+    ui = UISpritesheetExporter()
+
     # Always initialise the superclass.
     # This is necessary to create the underlying C++ object
     def __init__(self, parent):
@@ -27,24 +29,21 @@ class SpritesheetExporterExtension(Extension):
     # don't forget to activate the script in krita's preferences
     # or it won't show
     def createActions(self, window):
-        exportSs = window.createAction(
-            "pykrita_spritesheetExporter", "Export As Spritesheet", "tools/scripts"
-        )
-        # parameter 1 =  the name that Krita uses to identify the action
-        # (where is it used though? For key shortcuts?)
+        # parameter 1 = the name that Krita uses to identify the action
         # parameter 2 = this script's menu entry name
         # parameter 3 = location of menu entry
+        exportAction = window.createAction(
+            "pykrita_spritesheetExporter", "Export as Spritesheet", "tools/scripts"
+        )
 
-        exportSs.setToolTip("Export animation in timeline as spritesheet")
+        exportAction.setToolTip("Export animation in timeline as spritesheet")
         # doesn't show tooltip on mouse hover. Why?
 
         # when you click on the script in the menu it opens the dialog window
-        self.ui = se_ui.UISpritesheetExporter()
-        exportSs.triggered.connect(self.ui.showExportDialog)
+        exportAction.triggered.connect(self.ui.showExportDialog)
 
 
-# the actual stuff-doing is in the spritesheetexporter.py script
+# the backend is in spritesheet_exporter.py
 
 app = Krita.instance()
-# windows and menu stuff
 Scripter.addExtension(SpritesheetExporterExtension(app))
