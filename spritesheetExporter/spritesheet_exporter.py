@@ -6,29 +6,30 @@ from math import sqrt, ceil
 import json
 from pathlib import Path  # for path operations (who'd have guessed)
 
+DEFAULT_PATH = Path.home().joinpath("spritesheetExportKritaTmp")
+DEFAULT_TIME = -1
+DEFAULT_SPACE = 0
+
 
 class SpritesheetExporter:
-    exportName: str = "Spritesheet"
-    defaultPath: Path = Path.home().joinpath("spritesheetExportKritaTmp")
-    exportDir: Path = Path.home()
-    spritesExportDir: Path = defaultPath
+    exportName = "Spritesheet"
+    exportDir = Path.home()
+    spritesExportDir = DEFAULT_PATH
 
-    isHorizontal: bool = True
-    defaultTime: int = -1
-    defaultSpace: int = 0
-    rows: int = defaultSpace
-    columns: int = defaultSpace
-    start: int = defaultTime
-    end: int = defaultTime
+    isHorizontal = True
+    rows = DEFAULT_SPACE
+    columns = DEFAULT_SPACE
+    start = DEFAULT_TIME
+    end = DEFAULT_TIME
 
-    forceNew: bool = False
-    removeTmp: bool = True
-    step: int = 1
-    layersAsAnimation: bool = False
-    writeTextureAtlas: bool = False
+    forceNew = False
+    removeTmp = True
+    step = 1
+    layersAsAnimation = False
+    writeTextureAtlas = False
     layersList: list[Node] = []
     layersStates: list[bool] = []
-    offLayers: int = 0
+    offLayers = 0
 
     def positionLayer(self, layer: Node, imgNum: int, width: int, height: int):
         distance = self.columns if self.isHorizontal else self.rows
@@ -82,14 +83,14 @@ class SpritesheetExporter:
 
         # get the last frame smaller than
         # the clip end time (whose default is 100)
-        if self.end == self.defaultTime:
+        if self.end == DEFAULT_TIME:
             if isNewVersion:
                 for layer in layers:
                     self.checkLayerEnd(layer, doc)
             else:
                 self.end = 100
         # get first frame of all visible layers
-        if self.start == self.defaultTime:
+        if self.start == DEFAULT_TIME:
             if isNewVersion:
                 self.start = self.end
                 for layer in layers:
@@ -150,7 +151,7 @@ class SpritesheetExporter:
         addedFolder = False
         # create a temporary export directory for the individual sprites
         # if the user didn't set any
-        if self.spritesExportDir == self.defaultPath:
+        if self.spritesExportDir == DEFAULT_PATH:
             self.spritesExportDir = sheetExportPath("_sprites")
 
         if self.forceNew and self.spritesExportDir.exists():
@@ -184,7 +185,7 @@ class SpritesheetExporter:
         if not self.layersAsAnimation:
             # check self.end and self.start values
             # and if needed input default value
-            if self.end == self.defaultTime or self.start == self.defaultTime:
+            if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
                 self.setStartEndFrames()
             doc.setCurrentTime(self.start)
             if debug:
@@ -265,7 +266,7 @@ class SpritesheetExporter:
         # debugPrint(dir(doc))
 
         # getting a default value for rows and columns
-        if (self.rows == self.defaultSpace) and (self.columns == self.defaultSpace):
+        if (self.rows == DEFAULT_SPACE) and (self.columns == DEFAULT_SPACE):
             # square fit
             self.columns = ceil(sqrt(framesNum - self.offLayers))
             self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
@@ -276,7 +277,7 @@ class SpritesheetExporter:
                 debugPrint(f"self.rows: {self.rows}; self.columns: {self.columns}")
 
         # if only one is specified, guess the other
-        elif self.rows == self.defaultSpace:
+        elif self.rows == DEFAULT_SPACE:
             self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
 
         # Though if I have to guess the number of columns,
@@ -284,7 +285,7 @@ class SpritesheetExporter:
         # For example, if you want ten rows from twelve sprites
         # instead of two rows of two and eight of one,
         # you'll have six rows of two
-        elif self.columns == self.defaultSpace:
+        elif self.columns == DEFAULT_SPACE:
             self.columns = ceil(float(framesNum - self.offLayers) / self.rows)
             self.rows = ceil(float(framesNum - self.offLayers) / self.columns)
 

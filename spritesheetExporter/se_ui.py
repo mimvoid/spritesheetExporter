@@ -25,7 +25,12 @@ from builtins import i18n
 
 # we want paths to work whether it's windows or unix
 from pathlib import Path
-from . import spritesheet_exporter
+from .spritesheet_exporter import (
+    SpritesheetExporter,
+    DEFAULT_PATH,
+    DEFAULT_SPACE,
+    DEFAULT_TIME,
+)
 
 
 class DescribedWidget:
@@ -37,7 +42,7 @@ class DescribedWidget:
 
 class UISpritesheetExporter:
     app = krita.Krita.instance()
-    exp = spritesheet_exporter.SpritesheetExporter()
+    exp = SpritesheetExporter()
 
     # the main window
     mainDialog = QDialog()
@@ -108,16 +113,16 @@ class UISpritesheetExporter:
         # a box holding the boxes with rows columns and start end
         self.spinBoxes = QHBoxLayout(self.spinBoxesWidget)
 
-        self.rows = QSpinBox(minimum=self.exp.defaultSpace)
-        self.columns = QSpinBox(minimum=self.exp.defaultSpace)
-        self.rows.setValue(self.exp.defaultSpace)
-        self.columns.setValue(self.exp.defaultSpace)
+        self.rows = QSpinBox(minimum=DEFAULT_SPACE)
+        self.columns = QSpinBox(minimum=DEFAULT_SPACE)
+        self.rows.setValue(DEFAULT_SPACE)
+        self.columns.setValue(DEFAULT_SPACE)
 
-        self.start = QSpinBox(minimum=self.exp.defaultTime, maximum=9999)
-        self.end = QSpinBox(minimum=self.exp.defaultTime, maximum=9999)
+        self.start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
+        self.end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
         self.step = QSpinBox(minimum=1)
-        self.start.setValue(self.exp.defaultTime)
-        self.end.setValue(self.exp.defaultTime)
+        self.start.setValue(DEFAULT_TIME)
+        self.end.setValue(DEFAULT_TIME)
         self.step.setValue(1)
 
         # to be placed outside of spinBoxes, still in outerLayout
@@ -474,6 +479,6 @@ class UISpritesheetExporter:
             self.exp.spritesExportDir = Path(self.spritesExportDirTx.text())
         else:
             # important: we reset spritesheetexporter's spritesExportDir
-            self.exp.spritesExportDir = self.exp.defaultPath
+            self.exp.spritesExportDir = DEFAULT_PATH
         self.exp.export()
         self.mainDialog.hide()
