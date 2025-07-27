@@ -4,10 +4,11 @@ spritesheet exporter from animation timeline
 
 """
 
-from krita import Extension, Krita
+from krita import Extension
 from builtins import Scripter
 
 from .se_ui import UISpritesheetExporter
+from .spritesheet_exporter import KI
 # manages the dialog that lets you
 # set user preferences before applying the script
 
@@ -44,6 +45,4 @@ class SpritesheetExporterExtension(Extension):
 
 
 # the backend is in spritesheet_exporter.py
-
-app = Krita.instance()
-Scripter.addExtension(SpritesheetExporterExtension(app))
+Scripter.addExtension(SpritesheetExporterExtension(KI))

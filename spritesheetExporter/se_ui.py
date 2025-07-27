@@ -20,13 +20,13 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QSpacerItem,
 )
-import krita
 from builtins import i18n
 
 # we want paths to work whether it's windows or unix
 from pathlib import Path
 from .spritesheet_exporter import (
     SpritesheetExporter,
+    KI,
     DEFAULT_SPACE,
     DEFAULT_TIME,
 )
@@ -40,7 +40,6 @@ class DescribedWidget:
 
 
 class UISpritesheetExporter:
-    app = krita.Krita.instance()
     exp = SpritesheetExporter()
 
     # the main window
@@ -396,7 +395,7 @@ class UISpritesheetExporter:
         self.hiddenCheckbox.setDisabled(self.removeTmp.isChecked())
 
     def showExportDialog(self):
-        self.doc = self.app.activeDocument()
+        self.doc = KI.activeDocument()
         if self.exportDirTx.text() == "":
             self.resetExportDir()
         self.mainDialog.setWindowTitle(i18n("SpritesheetExporter"))

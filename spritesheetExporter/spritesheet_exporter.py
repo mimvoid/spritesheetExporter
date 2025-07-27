@@ -5,6 +5,7 @@ from math import sqrt, ceil
 import json
 from pathlib import Path  # for path operations (who'd have guessed)
 
+KI = Krita.instance()
 DEFAULT_TIME = -1
 DEFAULT_SPACE = 0
 
@@ -63,7 +64,7 @@ class SpritesheetExporter:
 
     # get actual animation duration
     def setStartEndFrames(self):
-        doc = Krita.instance().activeDocument()
+        doc = KI.activeDocument()
         if not doc:
             return
 
@@ -140,7 +141,7 @@ class SpritesheetExporter:
         - remove tmp folder if needed
         """
 
-        doc = Krita.instance().activeDocument()
+        doc = KI.activeDocument()
         if not doc:
             return
 
@@ -155,7 +156,7 @@ class SpritesheetExporter:
         height = doc.height()
 
         # creating a new document where we'll put our sprites
-        sheet = Krita.instance().createDocument(
+        sheet = KI.createDocument(
             width,
             height,
             self.exportName,
@@ -231,7 +232,7 @@ class SpritesheetExporter:
         sheet.refreshProjection()
 
         # Show the canvas to the user
-        Krita.instance().activeWindow().addView(sheet)
+        KI.activeWindow().addView(sheet)
 
         if self.writeTextureAtlas:
             with open(str(self.sheetExportPath(".json")), "w") as f:
