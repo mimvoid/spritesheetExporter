@@ -1,86 +1,80 @@
-from krita import Krita, InfoObject
+from krita import Krita, Document, Node, InfoObject
 from builtins import i18n, Application
+from PyQt5.QtWidgets import QWidget, QMessageBox  # for debug messages
+
 from math import sqrt, ceil
 import json
-
-from pathlib import Path
-# for path operations (who'd have guessed)
-
-from PyQt5.QtWidgets import QWidget, QMessageBox
-# for debug messages
+from pathlib import Path  # for path operations (who'd have guessed)
 
 
-class SpritesheetExporter(object):
-    def __init__(self):
-        # user-defined variables
-        self.exportName = "Spritesheet"
-        self.defaultPath = Path.home().joinpath("spritesheetExportKritaTmp")
-        # remember this is a Path, not a string, and as such
-        # you can't do string operations on it (unless you convert it first):
-        self.exportDir = Path.home()
-        # this is a Path too. Trust me.
-        self.spritesExportDir = self.defaultPath
-        self.isDirectionHorizontal = True
-        self.defaultTime = -1
-        self.defaultSpace = 0
-        self.rows = self.defaultSpace
-        self.columns = self.defaultSpace
-        self.start = self.defaultTime
-        self.end = self.defaultTime
-        self.forceNew = False
-        self.removeTmp = True
-        self.step = 1
-        self.layersAsAnimation = False
-        self.writeTextureAtlas = False
-        self.layersList = []
-        self.layersStates = []
-        self.offLayers = 0
+class SpritesheetExporter:
+    exportName: str = "Spritesheet"
+    defaultPath: Path = Path.home().joinpath("spritesheetExportKritaTmp")
+    exportDir: Path = Path.home()
+    spritesExportDir: Path = defaultPath
 
-    def positionLayer(self, layer, imgNum, width, height):
-        if self.isDirectionHorizontal:
-            layer.move(
-                int(imgNum % self.columns) * int(width),
-                (int(imgNum / self.columns)) * int(height),
-            )
-        else:
-            layer.move(
-                int(imgNum / self.rows) * int(width),
-                int(imgNum % self.rows) * int(height),
-            )
+    isDirectionHorizontal: bool = True
+    defaultTime: int = -1
+    defaultSpace: int = 0
+    rows: int = defaultSpace
+    columns: int = defaultSpace
+    start: int = defaultTime
+    end: int = defaultTime
 
-    def checkLayerEnd(self, layer, doc):
-        if layer.visible():
-            if layer.animated():
-                frame = doc.fullClipRangeEndTime()
-                while not (layer.hasKeyframeAtTime(frame) or frame < 0):
-                    frame -= 1
-                if self.end < frame:
-                    self.end = frame
-            if len(layer.childNodes()) != 0:
-                # if it was a group layer
-                # we also check its kids
-                for kid in layer.childNodes():
-                    self.checkLayerEnd(kid, doc)
+    forceNew: bool = False
+    removeTmp: bool = True
+    step: int = 1
+    layersAsAnimation: bool = False
+    writeTextureAtlas: bool = False
+    layersList: list[Node] = []
+    layersStates: list[bool] = []
+    offLayers: int = 0
 
-    def checkLayerStart(self, layer, doc):
-        if layer.visible():
-            if layer.animated():
-                frame = 0
-                while not (
-                    layer.hasKeyframeAtTime(frame) or frame > doc.fullClipRangeEndTime()
-                ):
-                    frame += 1
-                if self.start > frame:
-                    self.start = frame
-            if len(layer.childNodes()) != 0:
-                # if it was a group layer
-                # we also check its kids
-                for kid in layer.childNodes():
-                    self.checkLayerStart(kid, doc)
+    def positionLayer(self, layer: Node, imgNum: int, width: int, height: int):
+        distance = self.columns if self.isDirectionHorizontal else self.rows
+        layer.move(
+            int((imgNum % distance) * width),
+            int((imgNum // distance) * height),
+        )
+
+    def checkLayerEnd(self, layer: Node, doc: Document):
+        if not layer.visible():
+            return
+
+        if layer.animated():
+            frame = doc.fullClipRangeEndTime()
+            while not (layer.hasKeyframeAtTime(frame) or frame < 0):
+                frame -= 1
+            if self.end < frame:
+                self.end = frame
+
+        # if it was a group layer, we also check its children
+        for child in layer.childNodes():
+            self.checkLayerEnd(child, doc)
+
+    def checkLayerStart(self, layer: Node, doc: Document):
+        if not layer.visible():
+            return
+
+        if layer.animated():
+            frame = 0
+            while not (
+                layer.hasKeyframeAtTime(frame) or frame > doc.fullClipRangeEndTime()
+            ):
+                frame += 1
+            if self.start > frame:
+                self.start = frame
+
+        # if it was a group layer, we also check its children
+        for child in layer.childNodes():
+            self.checkLayerStart(child, doc)
 
     # get actual animation duration
     def setStartEndFrames(self):
         doc = Krita.instance().activeDocument()
+        if not doc:
+            return
+
         layers = doc.topLevelNodes()
 
         # only from version 4.2.x on can we use hasKeyframeAtTime;
@@ -112,7 +106,7 @@ class SpritesheetExporter(object):
     # - export the doc (aka the spritesheet)
     # - remove tmp folder if needed
     def export(self, debugging=False):
-        def debugPrint(message, usingTerminal=True):
+        def debugPrint(message: str, usingTerminal=True):
             if usingTerminal:
                 print(message)
             else:
@@ -127,36 +121,27 @@ class SpritesheetExporter(object):
         def fileNum(num):
             return "_" + str(num).zfill(3)
 
-        def exportFrame(num, doc, debugging=False):
+        def exportFrame(num, doc: Document):
             doc.waitForDone()
             imagePath = str(spritesExportPath(fileNum(num) + ".png"))
             doc.exportImage(imagePath, InfoObject())
             if debugging:
-                debugPrint("exporting frame " + str(num) + " at " + imagePath)
+                debugPrint(f"exporting frame {num} at {imagePath}")
 
-        def getLayerState(layer, debugging=False):
+        def getLayerState(layer):
             if len(layer.childNodes()) != 0:
-                # if it was a group layer
-                # we also check its kids
-                for kid in layer.childNodes():
-                    getLayerState(kid, debugging)
-
+                for child in layer.childNodes():
+                    getLayerState(child, debugging)
             else:
                 self.layersStates.append(layer.visible())
                 self.layersList.append(layer)
                 if not layer.visible():
                     self.offLayers += 1
                 if debugging:
-                    debugPrint(
-                        "saving state "
-                        + str(layer.visible())
-                        + " of layer "
-                        + str(layer)
-                    )
+                    debugPrint(f"saving state {layer.visible()} of layer {layer}")
 
         if debugging:
-            print("")
-            debugPrint("Export spritesheet start.")
+            debugPrint("\nExport spritesheet start.")
 
         # clearing lists in case the script is used several times
         # without restarting krita
@@ -190,9 +175,9 @@ class SpritesheetExporter(object):
 
         # this will always be called if not forceNew
         # because it will always create a new export folder
-        if not (self.spritesExportDir).exists():
+        if not self.spritesExportDir.exists():
             addedFolder = True
-            (self.spritesExportDir).mkdir()
+            self.spritesExportDir.mkdir()
 
         # render animation in the sprites export folder
         doc = Krita.instance().activeDocument()
@@ -211,20 +196,10 @@ class SpritesheetExporter(object):
                 )
                 if isNewVersion:
                     debugPrint(
-                        "animation Length: "
-                        + str(doc.animationLength())
-                        + "; full clip start: "
-                        + str(doc.fullClipRangeStartTime())
-                        + "; full clip end: "
-                        + str(doc.fullClipRangeEndTime())
+                        f"animation Length: {doc.animationLength()}; full clip start: {doc.fullClipRangeStartTime()}; full clip end: {doc.fullClipRangeEndTime()}"
                     )
                 debugPrint(
-                    "export start: "
-                    + str(self.start)
-                    + "; export end: "
-                    + str(self.end)
-                    + "; export length: "
-                    + str(self.end - self.start)
+                    f"export start: {self.start}; export end: {self.end}; export length: {self.end - self.start}"
                 )
             framesNum = ((self.end + 1) - self.start) / self.step
             frameIDNum = self.start
@@ -276,7 +251,7 @@ class SpritesheetExporter(object):
                 self.layersList[frameIDNum].setVisible(self.layersStates[frameIDNum])
                 frameIDNum += 1
                 if debugging:
-                    debugPrint("restoring layer " + str(frameIDNum))
+                    debugPrint(f"restoring layer {frameIDNum}")
             frameIDNum = 0
 
         # getting current document info
@@ -300,12 +275,7 @@ class SpritesheetExporter(object):
             # self.rows = 1
             # self.columns = framesNum
             if debugging:
-                debugPrint(
-                    "self.rows: "
-                    + str(self.rows)
-                    + "; self.columns: "
-                    + str(self.columns)
-                )
+                debugPrint(f"self.rows: {self.rows}; self.columns: {self.columns}")
 
         # if only one is specified, guess the other
         elif self.rows == self.defaultSpace:
@@ -331,10 +301,10 @@ class SpritesheetExporter(object):
             res,
         )
         if debugging:
-            debugPrint("new doc name: " + sheet.name())
-            debugPrint("old doc width: " + str(width))
-            debugPrint("num of frames: " + str(framesNum))
-            debugPrint("new doc width: " + str(sheet.width()))
+            debugPrint(f"new doc name: {sheet.name()}")
+            debugPrint(f"old doc width: {width}")
+            debugPrint(f"num of frames: {framesNum}")
+            debugPrint(f"new doc width: {sheet.width()}")
 
             # for debugging when the result of print() is not available
             # QMessageBox.information(QWidget(), i18n("Debug 130"),
@@ -362,7 +332,7 @@ class SpritesheetExporter(object):
             ):
                 img = str(spritesExportPath(fileNum(frameIDNum) + ".png"))
                 if debugging:
-                    debugPrint("managing file " + str(frameIDNum) + " at " + img)
+                    debugPrint(f"managing file {frameIDNum} at {img}")
                 layer = sheet.createFileLayer(img, img, "ImageToSize")
                 root_node.addChildNode(layer, None)
                 self.positionLayer(
@@ -406,7 +376,7 @@ class SpritesheetExporter(object):
         # export the document to the export location
         sheet.setBatchmode(True)  # so it won't show the export dialog window
         if debugging:
-            debugPrint("exporting spritesheet to " + str(sheetExportPath()))
+            debugPrint(f"exporting spritesheet to {sheetExportPath()}")
 
         sheet.exportImage(str(sheetExportPath(".png")), InfoObject())
 
@@ -415,9 +385,8 @@ class SpritesheetExporter(object):
                 json.dump(textureAtlas, f)
 
         # and remove the empty tmp folder when you're done
-        if self.removeTmp:
-            if addedFolder:
-                self.spritesExportDir.rmdir()
+        if self.removeTmp and addedFolder:
+            self.spritesExportDir.rmdir()
 
         if debugging:
             debugPrint("All done!")

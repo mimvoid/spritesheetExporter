@@ -12,7 +12,7 @@ from . import se_ui
 # set user preferences before applying the script
 
 
-class spritesheetExporterExtension(Extension):
+class SpritesheetExporterExtension(Extension):
     # Always initialise the superclass.
     # This is necessary to create the underlying C++ object
     def __init__(self, parent):
@@ -47,4 +47,4 @@ class spritesheetExporterExtension(Extension):
 
 app = Krita.instance()
 # windows and menu stuff
-Scripter.addExtension(spritesheetExporterExtension(app))
+Scripter.addExtension(SpritesheetExporterExtension(app))
