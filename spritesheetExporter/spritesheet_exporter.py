@@ -1,11 +1,10 @@
-from krita import Krita, Document, Node, InfoObject
+from krita import Krita, Document, Node
 from builtins import Application
 
 from math import sqrt, ceil
 import json
 from pathlib import Path  # for path operations (who'd have guessed)
 
-DEFAULT_PATH = Path.home().joinpath("spritesheetExportKritaTmp")
 DEFAULT_TIME = -1
 DEFAULT_SPACE = 0
 
@@ -13,7 +12,6 @@ DEFAULT_SPACE = 0
 class SpritesheetExporter:
     exportName = "Spritesheet"
     exportDir = Path.home()
-    spritesExportDir = DEFAULT_PATH
 
     isHorizontal = True
     rows = DEFAULT_SPACE
@@ -22,13 +20,9 @@ class SpritesheetExporter:
     end = DEFAULT_TIME
 
     forceNew = False
-    removeTmp = True
     step = 1
     layersAsAnimation = False
     writeTextureAtlas = False
-    layersList: list[Node] = []
-    layersStates: list[bool] = []
-    offLayers = 0
 
     def positionLayer(self, layer: Node, imgNum: int, width: int, height: int):
         distance = self.columns if self.isHorizontal else self.rows
@@ -97,229 +91,127 @@ class SpritesheetExporter:
             else:
                 self.start = 0
 
-    # - export all frames of the animation in a temporary folder as png
-    # - create a new document of the right dimensions
-    #   according to self.rows and self.columns
-    # - position each exported frame in the new doc according to its name
-    # - export the doc (aka the spritesheet)
-    # - remove tmp folder if needed
-    def export(self, debug=False):
-        doc = Krita.instance().activeDocument()
-        if not doc:
-            return
 
-        def sheetExportPath(suffix=""):
-            return self.exportDir.joinpath(self.exportName + suffix)
+    def sheetExportPath(self, suffix=""):
+        return self.exportDir.joinpath(self.exportName + suffix)
 
-        def spritesExportPath(suffix=""):
-            return self.spritesExportDir.joinpath(self.exportName + suffix)
+    def _copy_frames(self, src: Document, dest: Document) -> int:
+        root = dest.rootNode()
+        width = src.width()
+        height = src.height()
 
-        def fileNum(num):
-            return "_" + str(num).zfill(3)
-
-        def exportFrame(num):
-            doc.waitForDone()
-            imagePath = str(spritesExportPath(fileNum(num) + ".png"))
-            doc.exportImage(imagePath, InfoObject())
-            if debug:
-                print(f"exporting frame {num} at {imagePath}")
-
-        def getLayerState(layer):
-            if len(layer.childNodes()) != 0:
-                for child in layer.childNodes():
-                    getLayerState(child, debug)
-            else:
-                self.layersStates.append(layer.visible())
-                self.layersList.append(layer)
-                if not layer.visible():
-                    self.offLayers += 1
-                if debug:
-                    print(f"saving state {layer.visible()} of layer {layer}")
-
-        if debug:
-            print("\nExport spritesheet start.")
-
-        # clearing lists in case the script is used several times
-        # without restarting krita
-        self.layersList.clear()
-        self.layersStates.clear()
-        self.offLayers = 0
-
-        addedFolder = False
-        # create a temporary export directory for the individual sprites
-        # if the user didn't set any
-        if self.spritesExportDir == DEFAULT_PATH:
-            self.spritesExportDir = sheetExportPath("_sprites")
-
-        if self.spritesExportDir.exists():
-            if self.forceNew:
-                # if forceNew, spritesExportDir's value is taken
-                # from the user-set choices in the dialog
-
-                exportNum = 0
-
-                parentPath = self.spritesExportDir.parent
-                folder = str(self.spritesExportDir.parts[-1])
-
-                def exportCandidate():
-                    return parentPath.joinpath(folder + str(exportNum))
-
-                # in case the user has a folder with the exact same name as the temporary one
-                while exportCandidate().exists():
-                    exportNum += 1
-                self.spritesExportDir = exportCandidate()
-        else:
-            # this will always be called if not forceNew
-            # because it will always create a new export folder
-            addedFolder = True
-            self.spritesExportDir.mkdir()
-
-        doc.setBatchmode(True)  # so it won't show the export dialog window
+        num_frames = 0
 
         if self.layersAsAnimation:
-            # save layers state (visible or not)
-            layers = doc.topLevelNodes()
-            for layer in layers:
-                getLayerState(layer, debug)
-            framesNum = len(self.layersList)
-
-            # for compatibility between animated frames as frames
-            # and layers as frames
-            self.start = 0
-            self.end = framesNum - 1
-
-            # hide all layers
-            for layer in self.layersList:
-                layer.setVisible(False)
+            paint_layers = src.rootNode().findChildNodes(
+                recursive=True, type="paintlayer"
+            )
 
             # export each visible layer
-            for i in range(0, len(self.layersStates), self.step):
-                if not self.layersStates[i]:
+            for i, layer in enumerate(paint_layers):
+                if not layer.visible():
                     continue
-                self.layersList[i].setVisible(True)
-                doc.refreshProjection() # refresh the canvas
-                exportFrame(i, doc)
-                self.layersList[i].setVisible(False)
 
-            # restore layers state
-            for i in range(0, len(self.layersStates)):
-                self.layersList[i].setVisible(self.layersStates[i])
-                if debug:
-                    print(f"restoring layer {i}")
+                clone_layer = dest.createCloneLayer(str(i), layer)
+                root.addChildNode(clone_layer, None)
+                num_frames += 1
         else:
             # check self.end and self.start values
             # and if needed input default value
             if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
                 self.setStartEndFrames()
-            doc.setCurrentTime(self.start)
-            if debug:
-                ver = Application.version()
-                isNewVersion = int(ver[0]) > 4 or (
-                    int(ver[0]) == 4 and int(ver[2]) >= 2
-                )
-                if isNewVersion:
-                    print(
-                        f"animation Length: {doc.animationLength()}; full clip start: {doc.fullClipRangeStartTime()}; full clip end: {doc.fullClipRangeEndTime()}"
-                    )
-                print(
-                    f"export start: {self.start}; export end: {self.end}; export length: {self.end - self.start}"
-                )
-            framesNum = ((self.end + 1) - self.start) / self.step
 
-            # export frames
             for i in range(self.start, self.end + 1, self.step):
-                exportFrame(i, doc)
-                doc.setCurrentTime(i + self.step)
+                src.setCurrentTime(i)
+                pixel_data = src.pixelData(0, 0, width, height)
+                layer = dest.createNode(str(i), "paintlayer")
+                layer.setPixelData(pixel_data, 0, 0, width, height)
+                root.addChildNode(layer, None)
+                num_frames += 1
+
+        return num_frames
+
+    def export(self, debug=False):
+        """
+        - create a new document of the right dimensions
+          according to self.rows and self.columns
+        - position each exported frame in the new doc according to its name
+        - export the doc (aka the spritesheet)
+        - remove tmp folder if needed
+        """
+
+        doc = Krita.instance().activeDocument()
+        if not doc:
+            return
+
+        if debug:
+            print("\nExport spritesheet start.")
+
+        doc.setBatchmode(True)  # so it won't show the export dialog window
 
         # getting current document info
         # so we can copy it over to the new document
         width = doc.width()
         height = doc.height()
-        col = doc.colorModel()
-        depth = doc.colorDepth()
-        profile = doc.colorProfile()
-        res = doc.resolution()
-        # this is very helpful while programming
-        # if you're not quite sure what can be done:
-        # print(dir(doc))
+
+        # creating a new document where we'll put our sprites
+        sheet = Krita.instance().createDocument(
+            width,
+            height,
+            self.exportName,
+            doc.colorModel(),
+            doc.colorDepth(),
+            doc.colorProfile(),
+            doc.resolution(),
+        )
+
+        num_frames = self._copy_frames(doc, sheet)
 
         # getting a default value for rows and columns
         if self.rows == DEFAULT_SPACE:
             if self.columns == DEFAULT_SPACE:
-                self.columns = ceil(sqrt(framesNum - self.offLayers))  # square fit
-            self.rows = ceil((framesNum - self.offLayers) / self.columns)
+                self.columns = ceil(sqrt(num_frames))  # square fit
+
+            self.rows = ceil(num_frames / self.columns)
         elif self.columns == DEFAULT_SPACE:
             # Though if I have to guess the number of columns,
             # it may also change the (user-set) number of rows.
             # For example, if you want ten rows from twelve sprites
             # instead of two rows of two and eight of one,
             # you'll have six rows of two
-            self.columns = ceil((framesNum - self.offLayers) / self.rows)
-            self.rows = ceil((framesNum - self.offLayers) / self.columns)
+            self.columns = ceil(num_frames / self.rows)
+            self.rows = ceil(num_frames / self.columns)
 
-        # creating a new document where we'll put our sprites
-        sheet = Krita.instance().createDocument(
-            self.columns * width,
-            self.rows * height,
-            self.exportName,
-            col,
-            depth,
-            profile,
-            res,
-        )
+        sheet.setWidth(self.columns * width)
+        sheet.setHeight(self.rows * height)
 
         if debug:
             print(
                 f"new doc name: {sheet.name()}\n"
                 + f"old doc width: {width}\n"
-                + f"num of frames: {framesNum}\n"
+                + f"num of frames: {num_frames}\n"
                 + f"new doc width: {sheet.width()}"
             )
 
-        # adding our sprites to the new document
-        # and moving them to the right position
-        root_node = sheet.rootNode()
 
-        # hide the default layer filled with white
-        root_node.childNodes()[0].setVisible(False)
-        invisibleLayersNum = 0
-
+        # Remove the default Background layer
+        sheet.rootNode().childNodes()[0].remove()
         textureAtlas = {"frames": []}
-        start = 0 if self.layersAsAnimation else self.start
 
-        for i in range(start, self.end + 1, self.step):
+        for layer in sheet.rootNode().childNodes():
             doc.waitForDone()
 
-            if self.layersAsAnimation and not self.layersStates[i]:
-                invisibleLayersNum += 1
-                continue
-
-            img = str(spritesExportPath(fileNum(i) + ".png"))
-            if debug:
-                print(f"managing file {i} at {img}")
-
-            layer = sheet.createFileLayer(img, img, "ImageToSize")
-            root_node.addChildNode(layer, None)
+            index = int(layer.name())
             self.positionLayer(
-                layer=layer,
-                imgNum=(((i - invisibleLayersNum) - self.start) / self.step),
-                width=width,
-                height=height,
+                layer,
+                ((index - self.start) / self.step),
+                width,
+                height,
             )
 
-            # refresh canvas so the layers actually do show
-            sheet.refreshProjection()
-
-            if self.removeTmp:
-                Path(img).unlink()  # removing temporary sprites exports
-            if debug:
-                print(
-                    f"adding to spritesheet, image {i - self.start} name: {img} at pos: {layer.position()}"
-                )
             if self.writeTextureAtlas:
                 textureAtlas["frames"].append(
                     {
-                        "filename": i,
                         "frame": {
                             "x": layer.position().x(),
                             "y": layer.position().y(),
@@ -329,20 +221,21 @@ class SpritesheetExporter:
                     }
                 )
 
-        # export the document to the export location
-        sheet.setBatchmode(True)  # so it won't show the export dialog window
         if debug:
-            print(f"exporting spritesheet to {sheetExportPath()}")
+            print(f"Saving spritesheet to {self.sheetExportPath()}")
 
-        sheet.exportImage(str(sheetExportPath(".png")), InfoObject())
+        sheet.setBatchmode(True)  # so it won't show the export dialog window
+        sheet.saveAs(str(self.sheetExportPath(".png")))
+
+        # refresh canvas so the layers are shown
+        sheet.refreshProjection()
+
+        # Show the canvas to the user
+        Krita.instance().activeWindow().addView(sheet)
 
         if self.writeTextureAtlas:
-            with open(str(sheetExportPath(".json")), "w") as f:
+            with open(str(self.sheetExportPath(".json")), "w") as f:
                 json.dump(textureAtlas, f)
-
-        # and remove the empty tmp folder when you're done
-        if self.removeTmp and addedFolder:
-            self.spritesExportDir.rmdir()
 
         if debug:
             print("All done!")

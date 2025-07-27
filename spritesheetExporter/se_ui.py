@@ -27,7 +27,6 @@ from builtins import i18n
 from pathlib import Path
 from .spritesheet_exporter import (
     SpritesheetExporter,
-    DEFAULT_PATH,
     DEFAULT_SPACE,
     DEFAULT_TIME,
 )
@@ -69,14 +68,6 @@ class UISpritesheetExporter:
         self.exportDirButt.clicked.connect(self.changeExportDir)
         self.exportDirResetButt.clicked.connect(self.resetExportDir)
         self.exportDir = QHBoxLayout()
-
-        # and the sprites export directory
-        self.spritesExportDirWidget = QWidget()
-        self.spritesExportDirTx = QLineEdit()
-        self.spritesExportDirButt = QPushButton("Change sprites directory")
-        self.spritesExportDirButt.clicked.connect(self.changeSpritesExportDir)
-        self.spritesExportDirTx.setToolTip("Leave empty for default")
-        self.spritesExportDir = QHBoxLayout(self.spritesExportDirWidget)
 
         self.customSettings = QCheckBox()
         self.customSettings.setChecked(False)
@@ -370,23 +361,9 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.addDescribedWidget(
-            parent=self.spritesExportDir,
-            listWidgets=[
-                DescribedWidget(
-                    widget=self.spritesExportDirTx,
-                    descri="Sprites export directory:",
-                    tooltip="The directory the individual sprites "
-                    + "will be exported to",
-                )
-            ],
-        )
-        self.spritesExportDir.addWidget(self.spritesExportDirButt)
-
         # have removeTmp toggle forceNew's and sprites export dir's visibility
         self.checkBoxes.addWidget(self.hiddenCheckbox)
         self.hideableLayout.addLayout(self.checkBoxes)
-        self.hideableLayout.addWidget(self.spritesExportDirWidget)
         self.removeTmp.clicked.connect(self.toggleHiddenParams)
 
         self.outerLayout.addWidget(self.hideableWidget)
@@ -416,9 +393,7 @@ class UISpritesheetExporter:
     def toggleHiddenParams(self):
         if self.removeTmp.isChecked():
             self.forceNew.setChecked(False)
-            self.spritesExportDirTx.setText("")
         self.hiddenCheckbox.setDisabled(self.removeTmp.isChecked())
-        self.spritesExportDirWidget.setDisabled(self.removeTmp.isChecked())
 
     def showExportDialog(self):
         self.doc = self.app.activeDocument()
@@ -446,18 +421,6 @@ class UISpritesheetExporter:
             self.exportPath = Path(self.doc.fileName()).parents[0]
         self.exportDirTx.setText(str(self.exportPath))
 
-    def changeSpritesExportDir(self):
-        self.SpritesExportDirDialog = QFileDialog()
-        self.SpritesExportDirDialog.setWindowTitle(
-            i18n("Choose Sprites Export Directory")
-        )
-        self.SpritesExportDirDialog.setSizeGripEnabled(True)
-        self.SpritesExportDirDialog.setDirectory(str(self.exportPath))
-        # we grab the output path on directory changed
-        self.spritesExportPath = self.SpritesExportDirDialog.getExistingDirectory()
-        if self.spritesExportPath != "":
-            self.spritesExportDirTx.setText(str(self.spritesExportPath))
-
     def confirmButton(self):
         # if you double click it shouldn't interrupt
         # the first run of the function with a new one
@@ -475,10 +438,5 @@ class UISpritesheetExporter:
         self.exp.step = self.step.value()
         self.exp.removeTmp = self.removeTmp.isChecked()
         self.exp.forceNew = self.forceNew.isChecked()
-        if self.spritesExportDirTx.text() != "":
-            self.exp.spritesExportDir = Path(self.spritesExportDirTx.text())
-        else:
-            # important: we reset spritesheetexporter's spritesExportDir
-            self.exp.spritesExportDir = DEFAULT_PATH
         self.exp.export()
         self.mainDialog.hide()
