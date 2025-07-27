@@ -1,6 +1,5 @@
 from krita import Krita, Document, Node, InfoObject
-from builtins import i18n, Application
-from PyQt5.QtWidgets import QWidget, QMessageBox  # for debug messages
+from builtins import Application
 
 from math import sqrt, ceil
 import json
@@ -109,12 +108,6 @@ class SpritesheetExporter:
         if not doc:
             return
 
-        def debugPrint(message: str, usingTerminal=True):
-            if usingTerminal:
-                print(message)
-            else:
-                QMessageBox.information(QWidget(), i18n("Debug info: "), i18n(message))
-
         def sheetExportPath(suffix=""):
             return self.exportDir.joinpath(self.exportName + suffix)
 
@@ -129,7 +122,7 @@ class SpritesheetExporter:
             imagePath = str(spritesExportPath(fileNum(num) + ".png"))
             doc.exportImage(imagePath, InfoObject())
             if debug:
-                debugPrint(f"exporting frame {num} at {imagePath}")
+                print(f"exporting frame {num} at {imagePath}")
 
         def getLayerState(layer):
             if len(layer.childNodes()) != 0:
@@ -141,10 +134,10 @@ class SpritesheetExporter:
                 if not layer.visible():
                     self.offLayers += 1
                 if debug:
-                    debugPrint(f"saving state {layer.visible()} of layer {layer}")
+                    print(f"saving state {layer.visible()} of layer {layer}")
 
         if debug:
-            debugPrint("\nExport spritesheet start.")
+            print("\nExport spritesheet start.")
 
         # clearing lists in case the script is used several times
         # without restarting krita
@@ -212,7 +205,7 @@ class SpritesheetExporter:
             for i in range(0, len(self.layersStates)):
                 self.layersList[i].setVisible(self.layersStates[i])
                 if debug:
-                    debugPrint(f"restoring layer {i}")
+                    print(f"restoring layer {i}")
         else:
             # check self.end and self.start values
             # and if needed input default value
@@ -225,10 +218,10 @@ class SpritesheetExporter:
                     int(ver[0]) == 4 and int(ver[2]) >= 2
                 )
                 if isNewVersion:
-                    debugPrint(
+                    print(
                         f"animation Length: {doc.animationLength()}; full clip start: {doc.fullClipRangeStartTime()}; full clip end: {doc.fullClipRangeEndTime()}"
                     )
-                debugPrint(
+                print(
                     f"export start: {self.start}; export end: {self.end}; export length: {self.end - self.start}"
                 )
             framesNum = ((self.end + 1) - self.start) / self.step
@@ -248,7 +241,7 @@ class SpritesheetExporter:
         res = doc.resolution()
         # this is very helpful while programming
         # if you're not quite sure what can be done:
-        # debugPrint(dir(doc))
+        # print(dir(doc))
 
         # getting a default value for rows and columns
         if self.rows == DEFAULT_SPACE:
@@ -276,20 +269,12 @@ class SpritesheetExporter:
         )
 
         if debug:
-            debugPrint(f"new doc name: {sheet.name()}")
-            debugPrint(f"old doc width: {width}")
-            debugPrint(f"num of frames: {framesNum}")
-            debugPrint(f"new doc width: {sheet.width()}")
-
-            # for debugging when the result of print() is not available
-            # QMessageBox.information(QWidget(), i18n("Debug 130"),
-            #                         i18n("step: " + str(self.step) +
-            #                              "; end: " + str(self.end) +
-            #                              "; start: " + str(self.start) +
-            #                              "; rows: " + str(self.rows) +
-            #                              "; columns: " + str(self.columns) +
-            #                              "; frames number: " +
-            #                              str(framesNum)))
+            print(
+                f"new doc name: {sheet.name()}\n"
+                + f"old doc width: {width}\n"
+                + f"num of frames: {framesNum}\n"
+                + f"new doc width: {sheet.width()}"
+            )
 
         # adding our sprites to the new document
         # and moving them to the right position
@@ -311,7 +296,7 @@ class SpritesheetExporter:
 
             img = str(spritesExportPath(fileNum(i) + ".png"))
             if debug:
-                debugPrint(f"managing file {i} at {img}")
+                print(f"managing file {i} at {img}")
 
             layer = sheet.createFileLayer(img, img, "ImageToSize")
             root_node.addChildNode(layer, None)
@@ -328,7 +313,7 @@ class SpritesheetExporter:
             if self.removeTmp:
                 Path(img).unlink()  # removing temporary sprites exports
             if debug:
-                debugPrint(
+                print(
                     f"adding to spritesheet, image {i - self.start} name: {img} at pos: {layer.position()}"
                 )
             if self.writeTextureAtlas:
@@ -347,7 +332,7 @@ class SpritesheetExporter:
         # export the document to the export location
         sheet.setBatchmode(True)  # so it won't show the export dialog window
         if debug:
-            debugPrint(f"exporting spritesheet to {sheetExportPath()}")
+            print(f"exporting spritesheet to {sheetExportPath()}")
 
         sheet.exportImage(str(sheetExportPath(".png")), InfoObject())
 
@@ -360,4 +345,4 @@ class SpritesheetExporter:
             self.spritesExportDir.rmdir()
 
         if debug:
-            debugPrint("All done!")
+            print("All done!")
