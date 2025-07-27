@@ -148,8 +148,6 @@ class SpritesheetExporter:
         if debug:
             print("\nExport spritesheet start.")
 
-        doc.setBatchmode(True)  # so it won't show the export dialog window
-
         # getting current document info
         # so we can copy it over to the new document
         width = doc.width()
