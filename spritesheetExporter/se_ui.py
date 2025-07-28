@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (
     QCheckBox,
     QDialogButtonBox,
     QSpacerItem,
+    QRadioButton,
 )
 from builtins import i18n
 
@@ -47,6 +48,20 @@ class DescribedWidget:
             self.label.setToolTip(tooltip)
 
 
+class DirectionRadio(QHBoxLayout):
+    h_dir = QRadioButton(text="Horizontal")
+    v_dir = QRadioButton(text="Vertical")
+
+    def __init__(self):
+        super().__init__()
+
+        self.h_dir.setChecked(True)
+
+        self.addWidget(QLabel("Sprite placement direction:"))
+        self.addWidget(self.h_dir)
+        self.addWidget(self.v_dir)
+
+
 class UISpritesheetExporter:
     exp = SpritesheetExporter()
 
@@ -59,6 +74,18 @@ class UISpritesheetExporter:
 
     # the user should choose the export name of the final spritesheet
     export_name = QLineEdit()
+
+    custom_settings = QCheckBox()
+
+    # we let people export each layer as an animation frame if they wish
+    layers_as_animation = QCheckBox()
+    write_texture_atlas = QCheckBox()
+
+    # We want to let the user choose if they want the final spritesheet
+    # to be horizontally- or vertically-oriented.
+    direction = DirectionRadio()
+
+    force_new = QCheckBox(text="Force new folder")
 
     def __init__(self):
         # the window is not modal and does not block input to other windows
@@ -76,33 +103,12 @@ class UISpritesheetExporter:
         self.export_dir_reset_butt.clicked.connect(self.resetExportDir)
         self.export_dir = QHBoxLayout()
 
-        self.custom_settings = QCheckBox()
-        self.custom_settings.setChecked(False)
         self.custom_settings.stateChanged.connect(self.toggleHideable)
 
         self.hideable_widget = QFrame()  # QFrames are a type of widget
         self.hideable_widget.setFrameShape(QFrame.Panel)
         self.hideable_widget.setFrameShadow(QFrame.Sunken)
         self.hideable_layout = QVBoxLayout(self.hideable_widget)
-
-        # we let people export each layer as an animation frame if they wish
-        self.layers_as_animation = QCheckBox()
-        self.layers_as_animation.setChecked(False)
-
-        self.write_texture_atlas = QCheckBox()
-        self.write_texture_atlas.setChecked(False)
-
-        # We want to let the user choose if they want the final spritesheet
-        # to be horizontally- or vertically-oriented.
-        # There is a nifty thing called QButtonGroup() but
-        # it doesn't seem to let you add names between each checkbox somehow?
-        self.h_dir = QCheckBox()
-        self.h_dir.setChecked(True)
-        self.v_dir = QCheckBox()
-        self.v_dir.setChecked(False)
-        self.v_dir.stateChanged.connect(self.exclusiveVertToHor)
-        self.h_dir.stateChanged.connect(self.exclusiveHorToVert)
-        self.direction = QHBoxLayout()
 
         self.spin_boxes_widget = QFrame()
         self.spin_boxes_widget.setFrameShape(QFrame.Panel)
@@ -123,31 +129,11 @@ class UISpritesheetExporter:
         self.end.setValue(DEFAULT_TIME)
         self.step.setValue(1)
 
-        # to be placed outside of spinBoxes, still in outerLayout
-        self.hiddenCheckbox = QWidget()
-        self.hiddenCheckboxLayout = QVBoxLayout(self.hiddenCheckbox)
-        self.line = QFrame()
-        self.line.setFrameShape(QFrame.HLine)
-        self.line.setFrameShadow(QFrame.Sunken)
-        self.checkBoxes = QHBoxLayout()
-        self.forceNew = QCheckBox()
-        self.forceNew.setChecked(False)
-        self.removeTmp = QCheckBox()
-        self.removeTmp.setChecked(True)
-
-        self.line2 = QFrame()
-        self.line2.setFrameShape(QFrame.HLine)
-        self.line2.setFrameShadow(QFrame.Sunken)
         self.action_button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
         self.action_button_box.accepted.connect(self.confirmButton)
         self.action_button_box.rejected.connect(self.main_dialog.close)
-
-        self.space = 10
-
-        self.spacer = QSpacerItem(self.space, self.space)
-        self.spacerBig = QSpacerItem(self.space * 2, self.space * 2)
 
         self.exportPath = Path.home()
 
@@ -187,7 +173,7 @@ class UISpritesheetExporter:
             listWidgets=[
                 DescribedWidget(
                     self.export_dir_tx,
-                    "Export Directory:",
+                    "Export directory:",
                     "The directory the spritesheet will be exported to",
                 )
             ],
@@ -239,34 +225,9 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.hideable_layout.addItem(self.spacer)
-
-        self.direction.addWidget(QLabel("sprites placement direction: \t"))
-        self.add_described_widget(
-            parent=self.direction,
-            listWidgets=[
-                DescribedWidget(
-                    self.h_dir,
-                    "Horizontal:",
-                    "like so:\n1, 2, 3\n4, 5, 6\n7, 8, 9",
-                )
-            ],
-        )
-
-        self.add_described_widget(
-            parent=self.direction,
-            listWidgets=[
-                DescribedWidget(
-                    self.v_dir,
-                    "Vertical:",
-                    "like so:\n1, 4, 7\n2, 5, 8\n3, 6, 9",
-                )
-            ],
-        )
-
+        self.hideable_layout.addItem(QSpacerItem(10, 10))
         self.hideable_layout.addLayout(self.direction)
-
-        self.hideable_layout.addItem(self.spacerBig)
+        self.hideable_layout.addItem(QSpacerItem(20, 20))
 
         defaultsHint = QLabel("Leave any parameter at 0 to get a default value:")
         defaultsHint.setToolTip(
@@ -329,43 +290,18 @@ class UISpritesheetExporter:
 
         self.hideable_layout.addWidget(self.spin_boxes_widget)
 
-        self.add_described_widget(
-            parent=self.checkBoxes,
-            listWidgets=[
-                DescribedWidget(
-                    self.removeTmp,
-                    "Remove individual sprites?",
-                    "Once the spritesheet export is done,\n"
-                    + "whether to remove the individual exported sprites",
-                )
-            ],
-        )
-
-        self.forceNewLayout = self.add_described_widget(
-            parent=self.hiddenCheckboxLayout,
-            listWidgets=[
-                DescribedWidget(
-                    self.forceNew,
-                    "Force new folder?",
-                    "If there is already a folder "
-                    + "with the same name as the individual "
-                    + "sprites export folder,\n"
-                    + "whether to create a new one (checked) "
-                    + "or write the sprites in the existing folder,\n"
-                    + "possibly overwriting other files (unchecked)",
-                )
-            ],
-        )
-
-        # have removeTmp toggle forceNew's and sprites export dir's visibility
-        self.checkBoxes.addWidget(self.hiddenCheckbox)
-        self.hideable_layout.addLayout(self.checkBoxes)
-        self.removeTmp.clicked.connect(self.toggleHiddenParams)
+        # self.force_new.setTooltip(
+        #     "If there is already a folder with the same name as the individual sprites export folder,\n"
+        #     + "whether to create a new one (checked) or write the sprites in the existing folder,\n"
+        #     + "possibly overwriting other files (unchecked)",
+        # )
+        hidden_checkbox_layout = QVBoxLayout()
+        hidden_checkbox_layout.addWidget(self.force_new)
+        self.hideable_layout.addLayout(hidden_checkbox_layout)
 
         self.outer_layout.addWidget(self.hideable_widget)
 
         self.outer_layout.addWidget(self.action_button_box)
-        self.toggleHiddenParams()
         self.toggleHideable()
 
     def exclusiveVertToHor(self):
@@ -385,11 +321,6 @@ class UISpritesheetExporter:
         else:
             self.hideable_widget.hide()
             self.main_dialog.adjustSize()
-
-    def toggleHiddenParams(self):
-        if self.removeTmp.isChecked():
-            self.forceNew.setChecked(False)
-        self.hiddenCheckbox.setDisabled(self.removeTmp.isChecked())
 
     def showExportDialog(self):
         self.doc = KI.activeDocument()
@@ -432,7 +363,6 @@ class UISpritesheetExporter:
         self.exp.start = self.start.value()
         self.exp.end = self.end.value()
         self.exp.step = self.step.value()
-        self.exp.removeTmp = self.removeTmp.isChecked()
-        self.exp.force_new = self.forceNew.isChecked()
+        self.exp.force_new = self.force_new.isChecked()
         self.exp.export()
         self.main_dialog.hide()
