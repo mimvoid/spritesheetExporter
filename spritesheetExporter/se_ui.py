@@ -7,6 +7,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QGridLayout,
     QVBoxLayout,
+    QGroupBox,
     QFrame,
     QPushButton,
     QHBoxLayout,
@@ -75,7 +76,8 @@ class UISpritesheetExporter:
     # the user should choose the export name of the final spritesheet
     export_name = QLineEdit()
 
-    custom_settings = QCheckBox()
+    advanced_settings = QGroupBox("Advanced Settings")
+    advanced_layout = QVBoxLayout()
 
     # we let people export each layer as an animation frame if they wish
     layers_as_animation = QCheckBox()
@@ -103,12 +105,8 @@ class UISpritesheetExporter:
         self.export_dir_reset_butt.clicked.connect(self.resetExportDir)
         self.export_dir = QHBoxLayout()
 
-        self.custom_settings.stateChanged.connect(self.toggleHideable)
-
-        self.hideable_widget = QFrame()  # QFrames are a type of widget
-        self.hideable_widget.setFrameShape(QFrame.Panel)
-        self.hideable_widget.setFrameShadow(QFrame.Sunken)
-        self.hideable_layout = QVBoxLayout(self.hideable_widget)
+        self.advanced_settings.setCheckable(True)
+        self.advanced_settings.setChecked(False)
 
         self.spin_boxes_widget = QFrame()
         self.spin_boxes_widget.setFrameShape(QFrame.Panel)
@@ -195,24 +193,11 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.add_described_widget(
-            parent=self.top_layout,
-            listWidgets=[
-                DescribedWidget(
-                    self.custom_settings,
-                    "Use Custom export Settings:",
-                    "Whether to set yourself the number of rows, columns,\n"
-                    + "first and last frame, etc. (checked)\n"
-                    + "or use the default values (unchecked) ",
-                )
-            ],
-        )
-
         self.outer_layout.addLayout(self.top_layout, 0)
 
-        # all this stuff will be hideable
+        # Hidden under Advanced Settings
         self.add_described_widget(
-            parent=self.hideable_layout,
+            parent=self.advanced_layout,
             listWidgets=[
                 DescribedWidget(
                     self.layers_as_animation,
@@ -225,9 +210,9 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.hideable_layout.addItem(QSpacerItem(10, 10))
-        self.hideable_layout.addLayout(self.direction)
-        self.hideable_layout.addItem(QSpacerItem(20, 20))
+        self.advanced_layout.addItem(QSpacerItem(10, 10))
+        self.advanced_layout.addLayout(self.direction)
+        self.advanced_layout.addItem(QSpacerItem(20, 20))
 
         defaultsHint = QLabel("Leave any parameter at 0 to get a default value:")
         defaultsHint.setToolTip(
@@ -237,7 +222,7 @@ class UISpritesheetExporter:
             + "while leaving only columns at 0 and rows at 1\n"
             + "will set columns default at 16"
         )
-        self.hideable_layout.addWidget(defaultsHint)
+        self.advanced_layout.addWidget(defaultsHint)
 
         self.add_described_widget(
             parent=self.spin_boxes,
@@ -288,21 +273,19 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.hideable_layout.addWidget(self.spin_boxes_widget)
+        self.advanced_layout.addWidget(self.spin_boxes_widget)
 
         # self.force_new.setTooltip(
         #     "If there is already a folder with the same name as the individual sprites export folder,\n"
         #     + "whether to create a new one (checked) or write the sprites in the existing folder,\n"
         #     + "possibly overwriting other files (unchecked)",
         # )
-        hidden_checkbox_layout = QVBoxLayout()
-        hidden_checkbox_layout.addWidget(self.force_new)
-        self.hideable_layout.addLayout(hidden_checkbox_layout)
+        self.advanced_layout.addWidget(self.force_new)
 
-        self.outer_layout.addWidget(self.hideable_widget)
+        self.advanced_settings.setLayout(self.advanced_layout)
+        self.outer_layout.addWidget(self.advanced_settings)
 
         self.outer_layout.addWidget(self.action_button_box)
-        self.toggleHideable()
 
     def exclusiveVertToHor(self):
         self.exclusiveCheckBoxUpdate(trigger=self.v_dir, triggered=self.h_dir)
@@ -313,14 +296,6 @@ class UISpritesheetExporter:
     def exclusiveCheckBoxUpdate(self, trigger, triggered):
         if triggered.isChecked() == trigger.isChecked():
             triggered.setChecked(not trigger.isChecked())
-
-    def toggleHideable(self):
-        if self.custom_settings.isChecked():
-            self.hideable_widget.show()
-            self.main_dialog.adjustSize()
-        else:
-            self.hideable_widget.hide()
-            self.main_dialog.adjustSize()
 
     def showExportDialog(self):
         self.doc = KI.activeDocument()
