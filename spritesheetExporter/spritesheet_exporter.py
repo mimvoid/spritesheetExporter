@@ -32,44 +32,27 @@ class SpritesheetExporter:
             int((imgNum // distance) * height),
         )
 
-    def checkLayer(self, layer: Node, doc: Document, start: bool):
-        if not layer.visible():
-            return
-
-        if layer.animated():
-            if start:
-                frame = 0
-                while not (
-                    layer.hasKeyframeAtTime(frame) or frame > doc.fullClipRangeEndTime()
-                ):
-                    frame += 1
-                if self.start > frame:
-                    self.start = frame
-            else:
-                frame = doc.fullClipRangeEndTime()
-                while not (layer.hasKeyframeAtTime(frame) or frame < 0):
-                    frame -= 1
-                if self.end < frame:
-                    self.end = frame
-
-        # if it was a group layer, we also check its children
-        for child in layer.childNodes():
-            self.checkLayer(child, doc, start)
-
     def checkLayerEnd(self, layer: Node, doc: Document):
-        self.checkLayer(layer, doc, False)
+        frame = doc.fullClipRangeEndTime()
+
+        while not layer.hasKeyframeAtTime(frame) and frame >= 0:
+            frame -= 1
+
+        if self.end < frame:
+            self.end = frame
 
     def checkLayerStart(self, layer: Node, doc: Document):
-        self.checkLayer(layer, doc, True)
+        frame = 0
+        endTime = doc.fullClipRangeEndTime()
+
+        while not layer.hasKeyframeAtTime(frame) and frame <= endTime:
+            frame += 1
+
+        if self.start > frame:
+            self.start = frame
 
     # get actual animation duration
-    def setStartEndFrames(self):
-        doc = KI.activeDocument()
-        if not doc:
-            return
-
-        layers = doc.topLevelNodes()
-
+    def setStartEndFrames(self, doc: Document):
         # only from version 4.2.x on can we use hasKeyframeAtTime;
         # in earlier versions we just export from 0 to 100 as default
         major, minor, _ = Application.version().split(".")
@@ -77,21 +60,23 @@ class SpritesheetExporter:
 
         # get the last frame smaller than
         # the clip end time (whose default is 100)
-        if self.end == DEFAULT_TIME:
-            if isNewVersion:
-                for layer in layers:
-                    self.checkLayerEnd(layer, doc)
-            else:
-                self.end = 100
-        # get first frame of all visible layers
-        if self.start == DEFAULT_TIME:
-            if isNewVersion:
-                self.start = self.end
-                for layer in layers:
-                    self.checkLayerStart(layer, doc)
-            else:
-                self.start = 0
+        if isNewVersion:
+            layers = doc.rootNode().findChildNodes("", True)
+            filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
+            if self.end == DEFAULT_TIME:
+                for layer in filtered_layers:
+                    self.checkLayerEnd(layer, doc)
+
+            if self.start == DEFAULT_TIME:
+                self.start = self.end
+                for layer in filtered_layers:
+                    self.checkLayerStart(layer, doc)
+        else:
+            if self.end == DEFAULT_TIME:
+                self.end = 100
+            if self.start == DEFAULT_TIME:
+                self.start = 0
 
     def sheetExportPath(self, suffix=""):
         return self.exportDir.joinpath(self.exportName + suffix)
@@ -104,15 +89,11 @@ class SpritesheetExporter:
         num_frames = 0
 
         if self.layersAsAnimation:
-            paint_layers = src.rootNode().findChildNodes(
-                recursive=True, type="paintlayer"
-            )
+            paint_layers = src.rootNode().findChildNodes("", True, False, "paintlayer")
+            visible_layers = (i for i in paint_layers if i.visible())
 
             # export each visible layer
-            for i, layer in enumerate(paint_layers):
-                if not layer.visible():
-                    continue
-
+            for i, layer in enumerate(visible_layers):
                 clone_layer = dest.createCloneLayer(str(i), layer)
                 root.addChildNode(clone_layer, None)
                 num_frames += 1
@@ -120,7 +101,7 @@ class SpritesheetExporter:
             # check self.end and self.start values
             # and if needed input default value
             if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
-                self.setStartEndFrames()
+                self.setStartEndFrames(src)
 
             for i in range(self.start, self.end + 1, self.step):
                 src.setCurrentTime(i)
@@ -191,7 +172,6 @@ class SpritesheetExporter:
                 + f"num of frames: {num_frames}\n"
                 + f"new doc width: {sheet.width()}"
             )
-
 
         # Remove the default Background layer
         sheet.rootNode().childNodes()[0].remove()
