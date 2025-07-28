@@ -15,7 +15,7 @@ DEFAULT_SPACE = 0
 
 
 class SpritesheetExporter:
-    export_name = "Spritesheet"
+    export_name = "spritesheet"
     export_dir = Path.home()
 
     horizontal = True
@@ -28,6 +28,7 @@ class SpritesheetExporter:
     step = 1
     layers_as_animation = False
     write_texture_atlas = False
+    show_export_dialog = False
 
     def _position_layer(self, layer: Node, imgNum: int, width: int, height: int):
         distance = self.columns if self.horizontal else self.rows
@@ -168,13 +169,14 @@ class SpritesheetExporter:
         sheet = KI.createDocument(
             width,
             height,
-            self.export_name,
+            self.export_name + ".png",
             doc.colorModel(),
             doc.colorDepth(),
             doc.colorProfile(),
             doc.resolution(),
         )
 
+        sheet.setFileName(str(self.make_export_path(".png")))
         num_frames = self._copy_frames(doc, sheet)
 
         # getting a default value for rows and columns
@@ -230,17 +232,18 @@ class SpritesheetExporter:
                     }
                 )
 
-        if debug:
-            print(f"Saving spritesheet to {self.make_export_path()}")
-
-        sheet.setBatchmode(True)  # so it won't show the export dialog window
-        sheet.saveAs(str(self.make_export_path(".png")))
-
         # refresh canvas so the layers are shown
         sheet.refreshProjection()
 
         # Show the canvas to the user
         KI.activeWindow().addView(sheet)
+
+        if debug:
+            print(f"Saving spritesheet to {sheet.fileName()}")
+
+        if not self.show_export_dialog:
+            sheet.setBatchmode(True)
+        sheet.save()
 
         if texture_atlas is not None:
             with open(str(self.make_export_path(".json")), "w") as f:
