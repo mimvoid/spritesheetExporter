@@ -299,7 +299,7 @@ class UISpritesheetExporter:
         self.exp.export_dir = Path(self.exportPath)
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
         self.exp.write_texture_atlas = self.write_texture_atlas.isChecked()
-        self.exp.horizontal = self.h_dir.isChecked()
+        self.exp.horizontal = self.direction.h_dir.isChecked()
         self.exp.rows = self.rows.value()
         self.exp.columns = self.columns.value()
         self.exp.start = self.start.value()
