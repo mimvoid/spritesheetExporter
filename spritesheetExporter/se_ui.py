@@ -1,6 +1,6 @@
 """
-UI of the spritesheet exporter user choices dialog
-
+The UI that connects the backend to the frontend with a dialog window
+and displays the configuration options to the user.
 """
 
 from PyQt5.QtCore import Qt

@@ -1,9 +1,13 @@
+"""
+The backend that handles exporting spritesheet.
+"""
+
 from krita import Krita, Document, Node
 from builtins import Application
 
 from math import sqrt, ceil
 import json
-from pathlib import Path  # for path operations (who'd have guessed)
+from pathlib import Path
 
 KI = Krita.instance()
 DEFAULT_TIME = -1
@@ -25,14 +29,22 @@ class SpritesheetExporter:
     layers_as_animation = False
     write_texture_atlas = False
 
-    def position_layer(self, layer: Node, imgNum: int, width: int, height: int):
+    def _position_layer(self, layer: Node, imgNum: int, width: int, height: int):
         distance = self.columns if self.horizontal else self.rows
         layer.move(
             int((imgNum % distance) * width),
             int((imgNum // distance) * height),
         )
 
-    def check_layer_end(self, layer: Node, doc: Document):
+    def _check_last_keyframe(self, layer: Node, doc: Document):
+        """
+        Finds the time of the layer's last keyframe, and updates the upper time limit
+        accordingly.
+
+        @param layer A visible and animated layer
+        @param doc The document to which the layer belongs to
+        """
+
         frame = doc.fullClipRangeEndTime()
 
         while not layer.hasKeyframeAtTime(frame) and frame >= 0:
@@ -41,7 +53,15 @@ class SpritesheetExporter:
         if self.end < frame:
             self.end = frame
 
-    def check_layer_start(self, layer: Node, doc: Document):
+    def _check_first_keyframe(self, layer: Node, doc: Document):
+        """
+        Finds the time of the layer's first keyframe, and updates the lower time limit
+        accordingly.
+
+        @param layer A visible and animated layer
+        @param doc The document to which the layer belongs to
+        """
+
         frame = 0
         end_time = doc.fullClipRangeEndTime()
 
@@ -52,7 +72,14 @@ class SpritesheetExporter:
             self.start = frame
 
     # get actual animation duration
-    def set_frames(self, doc: Document):
+    def _set_frame_times(self, doc: Document):
+        """
+        Updates the lower and upper frame time limits if they are set to default values.
+
+        To avoid unnecessary work, check if either of the time values are default before
+        calling this function.
+        """
+
         # only from version 4.2.x on can we use hasKeyframeAtTime;
         # in earlier versions we just export from 0 to 100 as default
         major, minor, _ = Application.version().split(".")
@@ -66,12 +93,12 @@ class SpritesheetExporter:
 
             if self.end == DEFAULT_TIME:
                 for layer in filtered_layers:
-                    self.check_layer_end(layer, doc)
+                    self._check_last_keyframe(layer, doc)
 
             if self.start == DEFAULT_TIME:
                 self.start = self.end
                 for layer in filtered_layers:
-                    self.check_layer_start(layer, doc)
+                    self._check_first_keyframe(layer, doc)
         else:
             if self.end == DEFAULT_TIME:
                 self.end = 100
@@ -82,6 +109,14 @@ class SpritesheetExporter:
         return self.export_dir.joinpath(self.export_name + suffix)
 
     def _copy_frames(self, src: Document, dest: Document) -> int:
+        """
+        Copies frames from the source document to the destination.
+
+        @param src The source document
+        @param dest The destination document
+        @returns The number of frames copied
+        """
+
         root = dest.rootNode()
         width = src.width()
         height = src.height()
@@ -98,10 +133,8 @@ class SpritesheetExporter:
                 root.addChildNode(clone_layer, None)
                 num_frames += 1
         else:
-            # check self.end and self.start values
-            # and if needed input default value
             if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
-                self.set_frames(src)
+                self._set_frame_times(src)
 
             for i in range(self.start, self.end + 1, self.step):
                 src.setCurrentTime(i)
@@ -115,11 +148,8 @@ class SpritesheetExporter:
 
     def export(self, debug=False):
         """
-        - create a new document of the right dimensions
-          according to self.rows and self.columns
-        - position each exported frame in the new doc according to its name
-        - export the doc (aka the spritesheet)
-        - remove tmp folder if needed
+        Exports sprite animation frames to a new document and positions them
+        accordingly.
         """
 
         doc = KI.activeDocument()
@@ -181,7 +211,7 @@ class SpritesheetExporter:
             doc.waitForDone()
 
             index = int(layer.name())
-            self.position_layer(
+            self._position_layer(
                 layer,
                 ((index - self.start) / self.step),
                 width,
