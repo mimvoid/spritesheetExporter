@@ -1,76 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html>
-
+<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
-<!--BBD's Krita Script Starter, Feb 2018 -->
-<head><title>Spritesheet exporter</title>
-</head>
-<body>
-<h3>Spritesheet exporter: exports as spritesheets</h3>
+  <head>
+    <title>Spritesheet exporter</title>
+  </head>
 
-<br>
-<h3>Why use it</h3>
-<p>
-Most pixel art games use spritesheets for their animations, but manually exporting from the animation timeline is a pain, effectively destroys your animation if you do it on the same file, and with every new modification you need to start all over again.<br>
-This plugin allows you to easily export the active animation as a spritesheet without modifying your current working document.
-</p>
+  <body>
+    <h1>Spritesheet Exporter</h1>
 
-<br>
-<h3>How to use it</h3>
-<p>
-<b>Tools > Scripts > Export As Spritesheet </b>will export the animation from the currently selected document's animation timeline.<br>
-</p>
-<br>
-<h3>Options</h3>
-<p><b>export name</b>: if you type in "exportName", the name of the individual exported frames will be exportName_000.png, exportName_001.png, etc., and the spritesheet will be called exportName.png . If your name contains a comma, anything after the first comma will be ignored, and the file will still export as a png (for example, "exportName", "exportName.png", "exportName.pdf", "exportName.v12.final.finalfinal.xcf" will all export to the same name, see example just above).<br>
-<b>export directory</b>: select the folder in which the spritesheet will be exported (the frames will be exported in a subfolder of the export directory called exportName_sprites if no <b>sprites export directory</b> is set)<br>
-<b>change export directory</b>: Opens a file explorer to select the Export Directory<br>
-<b>reset to current directory</b>: Resets the export directory to the directory containing the currently active .kra document<br>
-  <b>write json texture atlas</b>: Writes a json texture atlas file that can be used e.g. in the Phaser 3 game framework. The atlas filename will be "exportName.json"
-The filenames in the atlas file will be set to the numeric index of the texture. Example:
-  <pre>
+    <h2>Why use it?</h2>
+    <p>
+      Most pixel art games use spritesheets for their animations, but manually
+      exporting from the animation timeline is a pain, effectively destroys your
+      animation if you do it on the same file, and with every new modification
+      you need to start all over again.
+    </p>
+    <p>
+      This plugin allows you to easily export the active animation as a
+      spritesheet without modifying your current working document.
+    </p>
+
+    <h2>How to use it</h2>
+    <p>
+      <strong>Tools > Scripts > Export As Spritesheet</strong>
+      will export the animation from the currently selected document's animation
+      timeline.
+    </p>
+
+    <h2>Options</h2>
+    <p>
+      <strong>export name</strong>: if you type in "exportName", the name of the
+      individual exported frames will be exportName_000.png, exportName_001.png,
+      etc., and the spritesheet will be called exportName.png . If your name
+      contains a comma, anything after the first comma will be ignored, and the
+      file will still export as a png (for example, "exportName",
+      "exportName.png", "exportName.pdf", "exportName.v12.final.finalfinal.xcf"
+      will all export to the same name, see example just above).
+    </p>
+    <p>
+      <strong>export directory</strong>: select the folder in which the
+      spritesheet will be exported (the frames will be exported in a subfolder
+      of the export directory called exportName_sprites if no
+      <strong>sprites export directory</strong> is set)
+    </p>
+    <p>
+      <strong>change export directory</strong>: Opens a file explorer to select
+      the Export Directory
+    </p>
+    <p>
+      <strong>reset to current directory</strong>: Resets the export directory
+      to the directory containing the currently active .kra document
+    </p>
+    <p>
+      <strong>write json texture atlas</strong>: Writes a json texture atlas
+      file that can be used e.g. in the Phaser 3 game framework. The atlas
+      filename will be "exportName.json"
+    </p>
+
+    <p>
+      The filenames in the atlas file will be set to the numeric index of the
+      texture. Example:
+    </p>
+    <pre>
 { "frames": [
     { "filename": 0,
       "frame": { "x": 0, "y": 0, "w": 300, "h": 334 } },
     { "filename": 1,
       "frame": { "x": 300, "y": 0, "w": 300, "h": 334 } },
 ...
-</pre>
-<br>
-<b>use layers as animation frames</b>: instead of exporting a spritesheet using each frame, export one using each visible layer (for the current frame); for people who have files formatted the photoshop way (timeline and layers on the same axis), or for those who don't export actual animations but sketches or something<br>
-<b>export direction</b>: How the frames are placed. For example, in a 3*2 grid, frame numbers are as follows:<br>
-if horizontal:<br>
-1, 2, 3<br>
-4, 5, 6<br>
-if vertical:<br>
-1, 3, 5<br>
-2, 4, 6<br>
-<b>rows</b>: select the number of rows. If 0, the script will guess it using the number of columns.<br>
-<b>columns</b>: select the number of columns. If 0, the script will guess it using the number of rows (it might change the number of rows to respect the horizontal priority)<br>
-If both rows and columns are set to 0, the default value will be used for both <i>(I'm torn between the default being one row or a square-ish image, I'd love to hear what other people think about this)</i><br>
-<b>start</b> and <b>end</b>: the start and end of the animation to export to spritesheet. Anything outside those values will not be considered.<br>
-<b>step</b>: Only consider every 'step' frame when exporting to spritesheet<br>
-If start and end are both set to -1, it will use the default value for both (that is, the actual animation length, considering all visible layers)<br>
-<b>remove individual sprites</b>: whether to remove the folder containing the individual exported sprites once finished. You'll usually want this on, but you do you.<br>
-<b>force new folder</b>: if the export folder already exists, whether to create a new one in its parent directory (checked), or export in it anyway, potentially overwriting existing files (unchecked).
-</p>
+    </pre>
 
-<br>
-<h3>Other spritesheet manipulations</h3>
-<p>
-If you want to <b>import spritesheets</b>, just use the built-in tools and simply (with your spritesheet open) go to Image > Image Split then (in a new file of the same dimensions as one frame), File > Import Animation Frames (<a href ="https://docs.krita.org/en/user_manual/animation.html#importing-animation-frames">official tuto with images here</a>)<br>
-If you want to <b>merge existing spritesheets</b>, open the biggest one to get a document its size, then remove or hide it so your document is empty, then import each spritesheet on a different frame (File > Import Animation Frames) and export them as a spritesheet (Tools > Scripts > Export As Spritesheet); you probably want 1 column and 0 (default) rows if your individual spritesheets are each one line<br>
-</p>
+    <p>
+      <strong>use layers as animation frames</strong>: instead of exporting a
+      spritesheet using each frame, export one using each visible layer (for the
+      current frame); for people who have files formatted the photoshop way
+      (timeline and layers on the same axis), or for those who don't export
+      actual animations but sketches or something
+    </p>
+    <p>
+      <strong>export direction</strong>: How the frames are placed. For example,
+      in a 3*2 grid, frame numbers are as follows:
+    </p>
+    <p>
+      If horizontal:<br />
+      1, 2, 3<br />
+      4, 5, 6<br />
+    </p>
+    <p>
+      If vertical:<br />
+      1, 3, 5<br />
+      2, 4, 6<br />
+    </p>
 
+    <p>
+      <strong>rows</strong>: select the number of rows. If 0, the script will
+      guess it using the number of columns.
+    </p>
+    <p>
+      <strong>columns</strong>: select the number of columns. If 0, the script
+      will guess it using the number of rows (it might change the number of rows
+      to respect the horizontal priority)
+    </p>
+    <p>
+      If both rows and columns are set to 0, the default value will be used for
+      both.
+      <em>
+        (I'm torn between the default being one row or a square-ish image, I'd
+        love to hear what other people think about this)
+      </em>
+    </p>
+    <p>
+      <strong>start</strong> and <strong>end</strong>: the start and end of the
+      animation to export to spritesheet. Anything outside those values will not
+      be considered.
+    </p>
+    <p>
+      <strong>step</strong>: Only consider every 'step' frame when exporting to
+      spritesheet
+    </p>
+    <p>
+      If start and end are both set to -1, it will use the default value for
+      both (that is, the actual animation length, considering all visible
+      layers)
+    </p>
+    <p>
+      <strong>force new folder</strong>: if the export folder already exists,
+      whether to create a new one in its parent directory (checked), or export
+      in it anyway, potentially overwriting existing files (unchecked).
+    </p>
 
-<br>
-<h3>Notes</h3>
-If you want to <b>activate debug messages</b>:<br>
-- go to the uispritesheetexporter.py file and change the second to last line, from "self.exp.export()" to "self.exp.export(True)"; it will print the debugs in the terminal (if you launched krita through the terminal)<br>
-- if you don't use the terminal, do the first step, then go to spritesheetexporter.py and change line 80 from "def debugPrint(message, usingTerminal = True):" to "def debugPrint(message, usingTerminal = False):" ; it will print the debug messages in small pop-up windows that you will have to click ok on before the script can go on.<br><br>
+    <h2>Other spritesheet manipulations</h2>
+    <p>
+      If you want to <strong>import spritesheets</strong>, just use the built-in
+      tools and simply (with your spritesheet open) go to Image > Image Split
+      then (in a new file of the same dimensions as one frame), File > Import
+      Animation Frames (<a
+        href="https://docs.krita.org/en/user_manual/animation.html#importing-animation-frames"
+        >official tuto with images here</a>)
+    </p>
+    <p>
+      If you want to <strong>merge existing spritesheets</strong>, open the
+      biggest one to get a document its size, then remove or hide it so your
+      document is empty, then import each spritesheet on a different frame (File
+      > Import Animation Frames) and export them as a spritesheet (Tools >
+      Scripts > Export As Spritesheet); you probably want 1 column and 0
+      (default) rows if your individual spritesheets are each one line
+    </p>
 
+    <h2>Notes</h2>
+    <p>If you want to <strong>activate debug messages</strong>:</p>
+    <p>
+      Go to the uispritesheetexporter.py file and change the second to last
+      line, from "self.exp.export()" to "self.exp.export(True)"; it will print
+      the debugs in the terminal (if you launched krita through the terminal)
+    </p>
 
-<p>If you have comments, suggestions, or need to contact me, send me an email at: noemie.scherer@gmail.com or open an issue at https://github.com/Falano/kritaSpritesheetManager (which is also where you can re-download it in case of need) </p>
+    <hr />
 
-</body>
+    <p>
+      If you have comments, suggestions, or need to contact me, send me an email
+      at: noemie.scherer@gmail.com or open an issue at
+      https://github.com/Falano/kritaSpritesheetManager (which is also where you
+      can re-download it in case of need)
+    </p>
+  </body>
 </html>
