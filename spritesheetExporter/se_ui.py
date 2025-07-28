@@ -33,10 +33,18 @@ from .spritesheet_exporter import (
 
 
 class DescribedWidget:
-    def __init__(self, widget, descri, tooltip=""):
+    widget: QWidget
+    label: QLabel
+
+    def __init__(self, widget: QWidget, description: str, tooltip: str | None = None):
         self.widget = widget
-        self.descri = descri
-        self.tooltip = tooltip
+
+        self.label = QLabel(description)
+        self.label.setBuddy(widget)
+
+        if tooltip:
+            widget.setToolTip(tooltip)
+            self.label.setToolTip(tooltip)
 
 
 class UISpritesheetExporter:
@@ -151,16 +159,11 @@ class UISpritesheetExporter:
     #  but doesn't seem possible)
     def add_described_widget(self, parent, listWidgets, align=Qt.AlignLeft):
         layout = QGridLayout()
-        row = 0
-        for widget in listWidgets:
-            label = QLabel(widget.descri)
-            label.setBuddy(widget.widget)
-            layout.addWidget(label, row, 0)
+
+        for row, widget in enumerate(listWidgets):
+            layout.addWidget(widget.label, row, 0)
             layout.addWidget(widget.widget, row, 1)
-            if widget.tooltip != "":
-                widget.widget.setToolTip(widget.tooltip)
-                label.setToolTip(widget.tooltip)
-            row += 1
+
         layout.setAlignment(align)
         parent.addLayout(layout)
         return layout
@@ -173,9 +176,9 @@ class UISpritesheetExporter:
             parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.export_name,
-                    descri="Export name:",
-                    tooltip="The name of the exported spritesheet file",
+                    self.export_name,
+                    "Export name:",
+                    "The name of the exported spritesheet file",
                 )
             ],
         )
@@ -183,9 +186,9 @@ class UISpritesheetExporter:
             parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.export_dir_tx,
-                    descri="Export Directory:",
-                    tooltip="The directory the spritesheet will be exported to",
+                    self.export_dir_tx,
+                    "Export Directory:",
+                    "The directory the spritesheet will be exported to",
                 )
             ],
         )
@@ -198,10 +201,9 @@ class UISpritesheetExporter:
             parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    descri="Write json texture atlas ",
-                    widget=self.write_texture_atlas,
-                    tooltip=""
-                    + "Write a json texture atlas that can be\n"
+                    self.write_texture_atlas,
+                    "Write json texture atlas ",
+                    "Write a json texture atlas that can be\n"
                     + "used in e.g. the Phaser 3 game framework",
                 )
             ],
@@ -211,10 +213,9 @@ class UISpritesheetExporter:
             parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.custom_settings,
-                    descri="Use Custom export Settings:",
-                    tooltip=""
-                    + "Whether to set yourself the number of rows, columns,\n"
+                    self.custom_settings,
+                    "Use Custom export Settings:",
+                    "Whether to set yourself the number of rows, columns,\n"
                     + "first and last frame, etc. (checked)\n"
                     + "or use the default values (unchecked) ",
                 )
@@ -228,14 +229,11 @@ class UISpritesheetExporter:
             parent=self.hideable_layout,
             listWidgets=[
                 DescribedWidget(
-                    descri="use layers as animation frames ",
-                    widget=self.layers_as_animation,
-                    tooltip="Rather than exporting a spritesheet "
-                    + "using as frames\n"
-                    + "each frame of the timeline "
-                    + "(all visible layers merged down),\n"
-                    + "export instead a spritesheet "
-                    + "using as frames\n"
+                    self.layers_as_animation,
+                    "use layers as animation frames",
+                    "Rather than exporting a spritesheet using as frames\n"
+                    + "each frame of the timeline (all visible layers merged down),\n"
+                    + "export instead a spritesheet using as frames\n"
                     + "the current frame of each visible layer",
                 )
             ],
@@ -248,9 +246,9 @@ class UISpritesheetExporter:
             parent=self.direction,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.h_dir,
-                    descri="Horizontal:",
-                    tooltip="like so:\n1, 2, 3\n4, 5, 6\n7, 8, 9",
+                    self.h_dir,
+                    "Horizontal:",
+                    "like so:\n1, 2, 3\n4, 5, 6\n7, 8, 9",
                 )
             ],
         )
@@ -259,9 +257,9 @@ class UISpritesheetExporter:
             parent=self.direction,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.v_dir,
-                    descri="Vertical:",
-                    tooltip="like so:\n1, 4, 7\n2, 5, 8\n3, 6, 9",
+                    self.v_dir,
+                    "Vertical:",
+                    "like so:\n1, 4, 7\n2, 5, 8\n3, 6, 9",
                 )
             ],
         )
@@ -284,16 +282,16 @@ class UISpritesheetExporter:
             parent=self.spin_boxes,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.rows,
-                    descri="Rows:",
-                    tooltip="Number of rows of the spritesheet;\n"
+                    self.rows,
+                    "Rows:",
+                    "Number of rows of the spritesheet;\n"
                     + "default is assigned depending on columns number\n"
                     + "or if 0 columns tries to form a square ",
                 ),
                 DescribedWidget(
-                    widget=self.columns,
-                    descri="Columns:",
-                    tooltip="Number of columns of the spritesheet;\n"
+                    self.columns,
+                    "Columns:",
+                    "Number of columns of the spritesheet;\n"
                     + "default is assigned depending on rows number\n"
                     + "or if 0 rows tries to form a square",
                 ),
@@ -304,26 +302,25 @@ class UISpritesheetExporter:
             parent=self.spin_boxes,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.start,
-                    descri="Start:",
-                    tooltip=""
-                    + "First frame of the animation timeline (included) "
+                    self.start,
+                    "Start:",
+                    "First frame of the animation timeline (included) "
                     + "to be added to the spritesheet;\n"
                     + "default is first keyframe after "
                     + "the Start frame of the Animation docker",
                 ),
                 DescribedWidget(
-                    widget=self.end,
-                    descri="End:",
-                    tooltip="Last frame of the animation timeline (included) "
+                    self.end,
+                    "End:",
+                    "Last frame of the animation timeline (included) "
                     + "to be added to the spritesheet;\n"
                     + "default is last keyframe before "
                     + "the End frame of the Animation docker",
                 ),
                 DescribedWidget(
-                    widget=self.step,
-                    descri="Step:",
-                    tooltip="only consider every 'step' frame "
+                    self.step,
+                    "Step:",
+                    "only consider every 'step' frame "
                     + "to be added to the spritesheet;\n"
                     + "default is 1 (use every frame)",
                 ),
@@ -336,9 +333,9 @@ class UISpritesheetExporter:
             parent=self.checkBoxes,
             listWidgets=[
                 DescribedWidget(
-                    descri="Remove individual sprites?",
-                    widget=self.removeTmp,
-                    tooltip="Once the spritesheet export is done,\n"
+                    self.removeTmp,
+                    "Remove individual sprites?",
+                    "Once the spritesheet export is done,\n"
                     + "whether to remove the individual exported sprites",
                 )
             ],
@@ -348,9 +345,9 @@ class UISpritesheetExporter:
             parent=self.hiddenCheckboxLayout,
             listWidgets=[
                 DescribedWidget(
-                    descri="Force new folder?",
-                    widget=self.forceNew,
-                    tooltip="If there is already a folder "
+                    self.forceNew,
+                    "Force new folder?",
+                    "If there is already a folder "
                     + "with the same name as the individual "
                     + "sprites export folder,\n"
                     + "whether to create a new one (checked) "
