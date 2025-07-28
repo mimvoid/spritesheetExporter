@@ -141,7 +141,8 @@ class UISpritesheetExporter:
     # except it doesn't let you add a tooltip to the row's name
     # (adding a tooltip to the whole layout would have been best
     #  but doesn't seem possible)
-    def add_described_widget(self, parent, listWidgets, align=Qt.AlignLeft):
+    @staticmethod
+    def add_described_widget(parent, listWidgets, align=Qt.AlignLeft):
         layout = QGridLayout()
 
         for row, widget in enumerate(listWidgets):
@@ -262,16 +263,6 @@ class UISpritesheetExporter:
         self.outer_layout.addWidget(self.advanced_settings)
 
         self.outer_layout.addWidget(self.action_button_box)
-
-    def exclusiveVertToHor(self):
-        self.exclusiveCheckBoxUpdate(trigger=self.v_dir, triggered=self.h_dir)
-
-    def exclusiveHorToVert(self):
-        self.exclusiveCheckBoxUpdate(trigger=self.h_dir, triggered=self.v_dir)
-
-    def exclusiveCheckBoxUpdate(self, trigger, triggered):
-        if triggered.isChecked() == trigger.isChecked():
-            triggered.setChecked(not trigger.isChecked())
 
     def showExportDialog(self):
         self.doc = KI.activeDocument()
