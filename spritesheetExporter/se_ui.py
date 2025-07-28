@@ -89,6 +89,11 @@ class ExportSettings(QVBoxLayout):
 
 
 class DirectionRadio(QHBoxLayout):
+    """
+    Lets the user choose if they want the final spreadsheet to be
+    horizontally or vertically oriented.
+    """
+
     h_dir = QRadioButton(text="Horizontal")
     v_dir = QRadioButton(text="Vertical")
 
@@ -105,33 +110,41 @@ class DirectionRadio(QHBoxLayout):
 class UISpritesheetExporter:
     exp = SpritesheetExporter()
 
-    # the main window
-    main_dialog = QDialog()
+    dialog = QDialog()  # the main window
+    root_layout = QVBoxLayout(dialog)  # the box holding everything
 
-    # the box holding everything
-    outer_layout = QVBoxLayout(main_dialog)
+    # Top layout, holds simple settings
     top_layout = QVBoxLayout()
-
     export = ExportSettings()
-
-    advanced_settings = QGroupBox("Advanced Settings")
-    advanced_layout = QVBoxLayout()
-
-    # we let people export each layer as an animation frame if they wish
-    layers_as_animation = QCheckBox(text="Use layers as animation frames")
     write_texture_atlas = QCheckBox(text="Write JSON texture atlas")
     export_frames = QCheckBox(text="Export individual frames")
 
-    # We want to let the user choose if they want the final spritesheet
-    # to be horizontally- or vertically-oriented.
+    # Advanced settings group
+    advanced_settings = QGroupBox("Advanced Settings")
+    advanced_layout = QVBoxLayout()
+
+    layers_as_animation = QCheckBox(text="Use layers as animation frames")
     direction = DirectionRadio()
+
+    # a box holding the boxes with rows columns and start end
+    spin_boxes_widget = QFrame()
+    spin_boxes = QHBoxLayout(spin_boxes_widget)
+
+    rows = QSpinBox(minimum=DEFAULT_SPACE)
+    columns = QSpinBox(minimum=DEFAULT_SPACE)
+
+    start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
+    end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
+    step = QSpinBox(minimum=1)
 
     force_new = QCheckBox(text="Force new folder")
 
+    dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+
     def __init__(self):
         # the window is not modal and does not block input to other windows
-        self.main_dialog.setWindowModality(Qt.NonModal)
-        self.main_dialog.setMinimumSize(500, 100)
+        self.dialog.setWindowModality(Qt.NonModal)
+        self.dialog.setMinimumSize(500, 100)
 
         self.export.name.setText(self.exp.export_name)
         self.export.change_button.clicked.connect(self.change_export_dir)
@@ -139,31 +152,20 @@ class UISpritesheetExporter:
 
         self.advanced_settings.setCheckable(True)
         self.advanced_settings.setChecked(False)
+        self.advanced_settings.setLayout(self.advanced_layout)
 
-        self.spin_boxes_widget = QFrame()
         self.spin_boxes_widget.setFrameShape(QFrame.Panel)
         self.spin_boxes_widget.setFrameShadow(QFrame.Sunken)
 
-        # a box holding the boxes with rows columns and start end
-        self.spin_boxes = QHBoxLayout(self.spin_boxes_widget)
-
-        self.rows = QSpinBox(minimum=DEFAULT_SPACE)
-        self.columns = QSpinBox(minimum=DEFAULT_SPACE)
         self.rows.setValue(DEFAULT_SPACE)
         self.columns.setValue(DEFAULT_SPACE)
 
-        self.start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
-        self.end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
-        self.step = QSpinBox(minimum=1)
         self.start.setValue(DEFAULT_TIME)
         self.end.setValue(DEFAULT_TIME)
         self.step.setValue(1)
 
-        self.action_button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        )
-        self.action_button_box.accepted.connect(self.confirmButton)
-        self.action_button_box.rejected.connect(self.main_dialog.close)
+        self.dialog_buttons.accepted.connect(self.confirmButton)
+        self.dialog_buttons.rejected.connect(self.dialog.close)
 
         self.initialize_export()
 
@@ -187,10 +189,8 @@ class UISpritesheetExporter:
         self.top_layout.addLayout(self.export)
         self.top_layout.addWidget(self.export_frames)
         self.top_layout.addWidget(self.write_texture_atlas)
+        self.root_layout.addLayout(self.top_layout, 0)
 
-        self.outer_layout.addLayout(self.top_layout, 0)
-
-        # Hidden under Advanced Settings
         self.advanced_layout.addWidget(self.layers_as_animation)
         self.advanced_layout.addItem(QSpacerItem(10, 10))
         self.advanced_layout.addLayout(self.direction)
@@ -256,27 +256,25 @@ class UISpritesheetExporter:
 
         self.advanced_layout.addWidget(self.spin_boxes_widget)
 
-        # self.force_new.setTooltip(
-        #     "If there is already a folder with the same name as the individual sprites export folder,\n"
-        #     + "whether to create a new one (checked) or write the sprites in the existing folder,\n"
-        #     + "possibly overwriting other files (unchecked)",
-        # )
+        self.force_new.setToolTip(
+            "If there is already a folder with the same name as the individual sprites export folder,\n"
+            + "whether to create a new one (checked) or write the sprites in the existing folder,\n"
+            + "possibly overwriting other files (unchecked)",
+        )
         self.advanced_layout.addWidget(self.force_new)
 
-        self.advanced_settings.setLayout(self.advanced_layout)
-        self.outer_layout.addWidget(self.advanced_settings)
-
-        self.outer_layout.addWidget(self.action_button_box)
+        self.root_layout.addWidget(self.advanced_settings)
+        self.root_layout.addWidget(self.dialog_buttons)
 
     def show_dialog(self):
         if self.export.directory.text() == "":
             self.reset_export_dir()
 
-        self.main_dialog.setWindowTitle(i18n("SpritesheetExporter"))
-        self.main_dialog.setSizeGripEnabled(True)
-        self.main_dialog.show()
-        self.main_dialog.activateWindow()
-        self.main_dialog.setDisabled(False)
+        self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
+        self.dialog.setSizeGripEnabled(True)
+        self.dialog.show()
+        self.dialog.activateWindow()
+        self.dialog.setDisabled(False)
 
     @staticmethod
     def current_directory() -> Optional[Path]:
@@ -306,7 +304,7 @@ class UISpritesheetExporter:
     def confirmButton(self):
         # if you double click it shouldn't interrupt
         # the first run of the function with a new one
-        self.main_dialog.setDisabled(True)
+        self.dialog.setDisabled(True)
 
         self.exp.export_name = self.export.name.text().split(".")[0]
         self.exp.export_dir = Path(self.export.directory.text())
@@ -322,4 +320,4 @@ class UISpritesheetExporter:
         self.exp.force_new = self.force_new.isChecked()
 
         self.exp.export()
-        self.main_dialog.hide()
+        self.dialog.hide()
