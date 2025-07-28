@@ -36,7 +36,7 @@ class SpritesheetExporterExtension(Extension):
         )
 
         exportAction.setToolTip("Export animation in timeline as spritesheet")
-        exportAction.triggered.connect(self.ui.showExportDialog)
+        exportAction.triggered.connect(self.ui.show_dialog)
 
 
 Scripter.addExtension(SpritesheetExporterExtension(KI))

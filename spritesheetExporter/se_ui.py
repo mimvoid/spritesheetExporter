@@ -26,6 +26,7 @@ from builtins import i18n
 
 # we want paths to work whether it's windows or unix
 from pathlib import Path
+from typing import Optional
 from .spritesheet_exporter import (
     SpritesheetExporter,
     KI,
@@ -47,6 +48,44 @@ class DescribedWidget:
         if tooltip:
             widget.setToolTip(tooltip)
             self.label.setToolTip(tooltip)
+
+
+class ExportSettings(QVBoxLayout):
+    name = QLineEdit()
+    directory = QLineEdit()
+    change_button = QPushButton(KI.icon("folder"), None)
+    reset_button = QPushButton(KI.icon("view-refresh"), None)
+
+    def __init__(self):
+        super().__init__()
+
+        name_label = QLabel("Export name:")
+        name_label.setBuddy(self.name)
+        self.name.setToolTip("The name of the exported spritesheet file")
+
+        dir_label = QLabel("Export directory:")
+        dir_label.setBuddy(self.directory)
+        self.directory.setToolTip("The directory the spritesheet will be exported to")
+
+        self.change_button.setToolTip(
+            "Open a file picker to choose the export directory"
+        )
+        self.reset_button.setToolTip(
+            "Reset export directory to the current document's directory"
+        )
+
+        name_layout = QHBoxLayout()
+        name_layout.addWidget(name_label)
+        name_layout.addWidget(self.name)
+
+        dir_layout = QHBoxLayout()
+        dir_layout.addWidget(dir_label)
+        dir_layout.addWidget(self.directory)
+        dir_layout.addWidget(self.change_button)
+        dir_layout.addWidget(self.reset_button)
+
+        self.addLayout(name_layout)
+        self.addLayout(dir_layout)
 
 
 class DirectionRadio(QHBoxLayout):
@@ -73,8 +112,7 @@ class UISpritesheetExporter:
     outer_layout = QVBoxLayout(main_dialog)
     top_layout = QVBoxLayout()
 
-    # the user should choose the export name of the final spritesheet
-    export_name = QLineEdit()
+    export = ExportSettings()
 
     advanced_settings = QGroupBox("Advanced Settings")
     advanced_layout = QVBoxLayout()
@@ -95,16 +133,9 @@ class UISpritesheetExporter:
         self.main_dialog.setWindowModality(Qt.NonModal)
         self.main_dialog.setMinimumSize(500, 100)
 
-        # and the export directory
-        self.export_dir_tx = QLineEdit()
-        self.export_dir_butt = QPushButton("Change export directory")
-        self.export_dir_reset_butt = QPushButton("Reset to current directory")
-        self.export_dir_reset_butt.setToolTip(
-            "Reset export directory to current .kra document's directory"
-        )
-        self.export_dir_butt.clicked.connect(self.changeExportDir)
-        self.export_dir_reset_butt.clicked.connect(self.resetExportDir)
-        self.export_dir = QHBoxLayout()
+        self.export.name.setText(self.exp.export_name)
+        self.export.change_button.clicked.connect(self.change_export_dir)
+        self.export.reset_button.clicked.connect(self.reset_export_dir)
 
         self.advanced_settings.setCheckable(True)
         self.advanced_settings.setChecked(False)
@@ -134,8 +165,6 @@ class UISpritesheetExporter:
         self.action_button_box.accepted.connect(self.confirmButton)
         self.action_button_box.rejected.connect(self.main_dialog.close)
 
-        self.exportPath = Path.home()
-
         self.initialize_export()
 
     # I would have used QFormLayout's addRow
@@ -155,34 +184,7 @@ class UISpritesheetExporter:
         return layout
 
     def initialize_export(self):
-        # putting stuff in boxes
-        # and boxes in bigger boxes
-        self.export_name.setText(self.exp.export_name)
-        self.add_described_widget(
-            parent=self.top_layout,
-            listWidgets=[
-                DescribedWidget(
-                    self.export_name,
-                    "Export name:",
-                    "The name of the exported spritesheet file",
-                )
-            ],
-        )
-        self.add_described_widget(
-            parent=self.top_layout,
-            listWidgets=[
-                DescribedWidget(
-                    self.export_dir_tx,
-                    "Export directory:",
-                    "The directory the spritesheet will be exported to",
-                )
-            ],
-        )
-
-        self.export_dir.addWidget(self.export_dir_butt)
-        self.export_dir.addWidget(self.export_dir_reset_butt)
-
-        self.top_layout.addLayout(self.export_dir)
+        self.top_layout.addLayout(self.export)
         self.top_layout.addWidget(self.export_frames)
         self.top_layout.addWidget(self.write_texture_atlas)
 
@@ -266,39 +268,48 @@ class UISpritesheetExporter:
 
         self.outer_layout.addWidget(self.action_button_box)
 
-    def showExportDialog(self):
-        self.doc = KI.activeDocument()
-        if self.export_dir_tx.text() == "":
-            self.resetExportDir()
+    def show_dialog(self):
+        if self.export.directory.text() == "":
+            self.reset_export_dir()
+
         self.main_dialog.setWindowTitle(i18n("SpritesheetExporter"))
         self.main_dialog.setSizeGripEnabled(True)
         self.main_dialog.show()
         self.main_dialog.activateWindow()
         self.main_dialog.setDisabled(False)
 
-    def changeExportDir(self):
-        self.exportDirDialog = QFileDialog()
-        self.exportDirDialog.setWindowTitle(i18n("Choose Export Directory"))
-        self.exportDirDialog.setSizeGripEnabled(True)
-        self.exportDirDialog.setDirectory(str(self.exportPath))
-        # we grab the output path on directory changed
-        self.exportPath = self.exportDirDialog.getExistingDirectory()
-        if self.exportPath != "":
-            self.export_dir_tx.setText(str(self.exportPath))
+    @staticmethod
+    def current_directory() -> Optional[Path]:
+        doc = KI.activeDocument()
+        if not doc or not doc.fileName():
+            return None
+        return Path(doc.fileName()).parent
 
-    # go back to the same folder where your .kra is
-    def resetExportDir(self):
-        if self.doc and self.doc.fileName():
-            self.exportPath = Path(self.doc.fileName()).parents[0]
-        self.export_dir_tx.setText(str(self.exportPath))
+    def change_export_dir(self):
+        file_dialog = QFileDialog()
+        file_dialog.setWindowTitle(i18n("Choose Export Directory"))
+        file_dialog.setSizeGripEnabled(True)
+
+        # QFileDialog already seems to handle invalid directories fine
+        file_dialog.setDirectory(self.export.directory.text())
+
+        # we grab the output path on directory changed
+        path = file_dialog.getExistingDirectory()
+        if path != "":
+            self.export.directory.setText(str(path))
+
+    def reset_export_dir(self):
+        path = UISpritesheetExporter.current_directory()
+        if path:
+            self.export.directory.setText(str(path))
 
     def confirmButton(self):
         # if you double click it shouldn't interrupt
         # the first run of the function with a new one
         self.main_dialog.setDisabled(True)
 
-        self.exp.export_name = self.export_name.text().split(".")[0]
-        self.exp.export_dir = Path(self.exportPath)
+        self.exp.export_name = self.export.name.text().split(".")[0]
+        self.exp.export_dir = Path(self.export.directory.text())
         self.exp.export_individual_frames = self.export_frames.isChecked()
         self.exp.write_texture_atlas = self.write_texture_atlas.isChecked()
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
@@ -309,5 +320,6 @@ class UISpritesheetExporter:
         self.exp.end = self.end.value()
         self.exp.step = self.step.value()
         self.exp.force_new = self.force_new.isChecked()
+
         self.exp.export()
         self.main_dialog.hide()
