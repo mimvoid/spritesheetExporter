@@ -5,6 +5,7 @@ The backend that handles exporting spritesheet.
 from krita import Krita, Document, Node
 from builtins import Application
 
+from collections.abc import Iterable
 from math import sqrt, ceil
 import json
 from pathlib import Path
@@ -37,7 +38,7 @@ class SpritesheetExporter:
             int((imgNum // distance) * height),
         )
 
-    def _check_last_keyframe(self, layer: Node, doc: Document):
+    def _check_last_keyframe(self, layer: Node, time_range: Iterable[int]):
         """
         Finds the time of the layer's last keyframe, and updates the upper time limit
         accordingly.
@@ -46,15 +47,13 @@ class SpritesheetExporter:
         @param doc The document to which the layer belongs to
         """
 
-        frame = doc.fullClipRangeEndTime()
+        for frame in time_range:
+            if layer.hasKeyframeAtTime(frame):
+                if self.end < frame:
+                    self.end = frame
+                return
 
-        while not layer.hasKeyframeAtTime(frame) and frame >= 0:
-            frame -= 1
-
-        if self.end < frame:
-            self.end = frame
-
-    def _check_first_keyframe(self, layer: Node, doc: Document):
+    def _check_first_keyframe(self, layer: Node, time_range: Iterable[int]):
         """
         Finds the time of the layer's first keyframe, and updates the lower time limit
         accordingly.
@@ -63,47 +62,69 @@ class SpritesheetExporter:
         @param doc The document to which the layer belongs to
         """
 
-        frame = 0
-        end_time = doc.fullClipRangeEndTime()
-
-        while not layer.hasKeyframeAtTime(frame) and frame <= end_time:
-            frame += 1
-
-        if self.start > frame:
-            self.start = frame
+        for frame in time_range:
+            if layer.hasKeyframeAtTime(frame):
+                if self.start > frame:
+                    self.start = frame
+                return
 
     # get actual animation duration
     def _set_frame_times(self, doc: Document):
         """
         Updates the lower and upper frame time limits if they are set to default values.
-
-        To avoid unnecessary work, check if either of the time values are default before
-        calling this function.
         """
+
+        def_start = self.start == DEFAULT_TIME
+        def_end = self.end == DEFAULT_TIME
+
+        if not def_start and not def_end:
+            return
 
         # only from version 4.2.x on can we use hasKeyframeAtTime;
         # in earlier versions we just export from 0 to 100 as default
         major, minor, _ = Application.version().split(".")
         is_new_version = int(major) > 4 or (int(major) == 4 and int(minor) >= 2)
 
-        # get the last frame smaller than
-        # the clip end time (whose default is 100)
         if is_new_version:
+            start_time = doc.fullClipRangeStartTime() if def_start else self.start
+            end_time = doc.fullClipRangeEndTime() if def_end else self.end
+
+            if start_time == end_time:
+                # The result will just be a single frame, no need for more operations.
+                self.start = start_time
+                self.end = start_time
+                return
+
             layers = doc.rootNode().findChildNodes("", True)
             filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
-            if self.end == DEFAULT_TIME:
-                for layer in filtered_layers:
-                    self._check_last_keyframe(layer, doc)
+            if not filtered_layers:
+                # There are no visible animated layers. In this case, it's fine
+                # to just take a single frame at the start
+                # TODO: Maybe suggest layers as animation
+                self.end = 0
+                self.start = 0
+                return
 
-            if self.start == DEFAULT_TIME:
-                self.start = self.end
+            if start_time > end_time:
+                start_time, end_time = end_time, start_time  # Swap values
+                if self.step > 0:
+                    self.step *= -1  # Make the step negative
+
+            if def_end:
+                time_range = range(end_time, start_time - 1, -1)
                 for layer in filtered_layers:
-                    self._check_first_keyframe(layer, doc)
+                    self._check_last_keyframe(layer, time_range)
+
+            if def_start:
+                self.start = self.end
+                time_range = range(start_time, self.end + 1)
+                for layer in filtered_layers:
+                    self._check_first_keyframe(layer, time_range)
         else:
-            if self.end == DEFAULT_TIME:
+            if def_end:
                 self.end = 100
-            if self.start == DEFAULT_TIME:
+            if def_start:
                 self.start = 0
 
     def make_export_path(self, suffix=""):
