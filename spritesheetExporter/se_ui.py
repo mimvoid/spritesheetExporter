@@ -80,8 +80,8 @@ class UISpritesheetExporter:
     advanced_layout = QVBoxLayout()
 
     # we let people export each layer as an animation frame if they wish
-    layers_as_animation = QCheckBox()
-    write_texture_atlas = QCheckBox()
+    layers_as_animation = QCheckBox(text="Use layers as animation frames")
+    write_texture_atlas = QCheckBox(text="Write JSON texture atlas")
 
     # We want to let the user choose if they want the final spritesheet
     # to be horizontally- or vertically-oriented.
@@ -179,45 +179,21 @@ class UISpritesheetExporter:
 
         self.export_dir.addWidget(self.export_dir_butt)
         self.export_dir.addWidget(self.export_dir_reset_butt)
-        self.top_layout.addLayout(self.export_dir)
 
-        self.add_described_widget(
-            parent=self.top_layout,
-            listWidgets=[
-                DescribedWidget(
-                    self.write_texture_atlas,
-                    "Write json texture atlas ",
-                    "Write a json texture atlas that can be\n"
-                    + "used in e.g. the Phaser 3 game framework",
-                )
-            ],
-        )
+        self.top_layout.addLayout(self.export_dir)
+        self.top_layout.addWidget(self.write_texture_atlas)
 
         self.outer_layout.addLayout(self.top_layout, 0)
 
         # Hidden under Advanced Settings
-        self.add_described_widget(
-            parent=self.advanced_layout,
-            listWidgets=[
-                DescribedWidget(
-                    self.layers_as_animation,
-                    "use layers as animation frames",
-                    "Rather than exporting a spritesheet using as frames\n"
-                    + "each frame of the timeline (all visible layers merged down),\n"
-                    + "export instead a spritesheet using as frames\n"
-                    + "the current frame of each visible layer",
-                )
-            ],
-        )
-
+        self.advanced_layout.addWidget(self.layers_as_animation)
         self.advanced_layout.addItem(QSpacerItem(10, 10))
         self.advanced_layout.addLayout(self.direction)
         self.advanced_layout.addItem(QSpacerItem(20, 20))
 
         defaultsHint = QLabel("Leave any parameter at 0 to get a default value:")
         defaultsHint.setToolTip(
-            "For example with 16 sprites, "
-            + "leaving both rows and columns at 0\n"
+            "For example with 16 sprites, leaving both rows and columns at 0\n"
             + "will set their defaults to 4 each\n"
             + "while leaving only columns at 0 and rows at 1\n"
             + "will set columns default at 16"
