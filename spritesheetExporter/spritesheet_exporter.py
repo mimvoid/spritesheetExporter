@@ -160,10 +160,13 @@ class SpritesheetExporter:
 
             for i in range(self.start, self.end + 1, self.step):
                 src.setCurrentTime(i)
-                pixel_data = src.pixelData(0, 0, width, height)
                 layer = dest.createNode(str(i), "paintlayer")
-                layer.setPixelData(pixel_data, 0, 0, width, height)
                 root.addChildNode(layer, None)
+
+                # Ensure the time has been set before copying the pixel data
+                src.waitForDone()
+                pixel_data = src.pixelData(0, 0, width, height)
+                layer.setPixelData(pixel_data, 0, 0, width, height)
                 num_frames += 1
 
         return num_frames
@@ -231,8 +234,6 @@ class SpritesheetExporter:
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
 
         for layer in sheet.rootNode().childNodes():
-            doc.waitForDone()
-
             index = int(layer.name())
             self._position_layer(
                 layer,
@@ -242,6 +243,7 @@ class SpritesheetExporter:
             )
 
             if texture_atlas is not None:
+                doc.waitForDone()
                 texture_atlas["frames"].append(
                     {
                         "frame": {
