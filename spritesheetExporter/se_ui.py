@@ -43,65 +43,65 @@ class UISpritesheetExporter:
     exp = SpritesheetExporter()
 
     # the main window
-    mainDialog = QDialog()
+    main_dialog = QDialog()
 
     # the box holding everything
-    outerLayout = QVBoxLayout(mainDialog)
-    topLayout = QVBoxLayout()
+    outer_layout = QVBoxLayout(main_dialog)
+    top_layout = QVBoxLayout()
 
     # the user should choose the export name of the final spritesheet
-    exportName = QLineEdit()
+    export_name = QLineEdit()
 
     def __init__(self):
         # the window is not modal and does not block input to other windows
-        self.mainDialog.setWindowModality(Qt.NonModal)
-        self.mainDialog.setMinimumSize(500, 100)
+        self.main_dialog.setWindowModality(Qt.NonModal)
+        self.main_dialog.setMinimumSize(500, 100)
 
         # and the export directory
-        self.exportDirTx = QLineEdit()
-        self.exportDirButt = QPushButton("Change export directory")
-        self.exportDirResetButt = QPushButton("Reset to current directory")
-        self.exportDirResetButt.setToolTip(
+        self.export_dir_tx = QLineEdit()
+        self.export_dir_butt = QPushButton("Change export directory")
+        self.export_dir_reset_butt = QPushButton("Reset to current directory")
+        self.export_dir_reset_butt.setToolTip(
             "Reset export directory to current .kra document's directory"
         )
-        self.exportDirButt.clicked.connect(self.changeExportDir)
-        self.exportDirResetButt.clicked.connect(self.resetExportDir)
-        self.exportDir = QHBoxLayout()
+        self.export_dir_butt.clicked.connect(self.changeExportDir)
+        self.export_dir_reset_butt.clicked.connect(self.resetExportDir)
+        self.export_dir = QHBoxLayout()
 
-        self.customSettings = QCheckBox()
-        self.customSettings.setChecked(False)
-        self.customSettings.stateChanged.connect(self.toggleHideable)
+        self.custom_settings = QCheckBox()
+        self.custom_settings.setChecked(False)
+        self.custom_settings.stateChanged.connect(self.toggleHideable)
 
-        self.hideableWidget = QFrame()  # QFrames are a type of widget
-        self.hideableWidget.setFrameShape(QFrame.Panel)
-        self.hideableWidget.setFrameShadow(QFrame.Sunken)
-        self.hideableLayout = QVBoxLayout(self.hideableWidget)
+        self.hideable_widget = QFrame()  # QFrames are a type of widget
+        self.hideable_widget.setFrameShape(QFrame.Panel)
+        self.hideable_widget.setFrameShadow(QFrame.Sunken)
+        self.hideable_layout = QVBoxLayout(self.hideable_widget)
 
         # we let people export each layer as an animation frame if they wish
-        self.layersAsAnimation = QCheckBox()
-        self.layersAsAnimation.setChecked(False)
+        self.layers_as_animation = QCheckBox()
+        self.layers_as_animation.setChecked(False)
 
-        self.writeTextureAtlas = QCheckBox()
-        self.writeTextureAtlas.setChecked(False)
+        self.write_texture_atlas = QCheckBox()
+        self.write_texture_atlas.setChecked(False)
 
         # We want to let the user choose if they want the final spritesheet
         # to be horizontally- or vertically-oriented.
         # There is a nifty thing called QButtonGroup() but
         # it doesn't seem to let you add names between each checkbox somehow?
-        self.horDir = QCheckBox()
-        self.horDir.setChecked(True)
-        self.vertDir = QCheckBox()
-        self.vertDir.setChecked(False)
-        self.vertDir.stateChanged.connect(self.exclusiveVertToHor)
-        self.horDir.stateChanged.connect(self.exclusiveHorToVert)
+        self.h_dir = QCheckBox()
+        self.h_dir.setChecked(True)
+        self.v_dir = QCheckBox()
+        self.v_dir.setChecked(False)
+        self.v_dir.stateChanged.connect(self.exclusiveVertToHor)
+        self.h_dir.stateChanged.connect(self.exclusiveHorToVert)
         self.direction = QHBoxLayout()
 
-        self.spinBoxesWidget = QFrame()
-        self.spinBoxesWidget.setFrameShape(QFrame.Panel)
-        self.spinBoxesWidget.setFrameShadow(QFrame.Sunken)
+        self.spin_boxes_widget = QFrame()
+        self.spin_boxes_widget.setFrameShape(QFrame.Panel)
+        self.spin_boxes_widget.setFrameShadow(QFrame.Sunken)
 
         # a box holding the boxes with rows columns and start end
-        self.spinBoxes = QHBoxLayout(self.spinBoxesWidget)
+        self.spin_boxes = QHBoxLayout(self.spin_boxes_widget)
 
         self.rows = QSpinBox(minimum=DEFAULT_SPACE)
         self.columns = QSpinBox(minimum=DEFAULT_SPACE)
@@ -130,11 +130,11 @@ class UISpritesheetExporter:
         self.line2 = QFrame()
         self.line2.setFrameShape(QFrame.HLine)
         self.line2.setFrameShadow(QFrame.Sunken)
-        self.OkCancelButtonBox = QDialogButtonBox(
+        self.action_button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
-        self.OkCancelButtonBox.accepted.connect(self.confirmButton)
-        self.OkCancelButtonBox.rejected.connect(self.mainDialog.close)
+        self.action_button_box.accepted.connect(self.confirmButton)
+        self.action_button_box.rejected.connect(self.main_dialog.close)
 
         self.space = 10
 
@@ -149,7 +149,7 @@ class UISpritesheetExporter:
     # except it doesn't let you add a tooltip to the row's name
     # (adding a tooltip to the whole layout would have been best
     #  but doesn't seem possible)
-    def addDescribedWidget(self, parent, listWidgets, align=Qt.AlignLeft):
+    def add_described_widget(self, parent, listWidgets, align=Qt.AlignLeft):
         layout = QGridLayout()
         row = 0
         for widget in listWidgets:
@@ -168,38 +168,38 @@ class UISpritesheetExporter:
     def initialize_export(self):
         # putting stuff in boxes
         # and boxes in bigger boxes
-        self.exportName.setText(self.exp.exportName)
-        self.addDescribedWidget(
-            parent=self.topLayout,
+        self.export_name.setText(self.exp.export_name)
+        self.add_described_widget(
+            parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.exportName,
+                    widget=self.export_name,
                     descri="Export name:",
                     tooltip="The name of the exported spritesheet file",
                 )
             ],
         )
-        self.addDescribedWidget(
-            parent=self.topLayout,
+        self.add_described_widget(
+            parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.exportDirTx,
+                    widget=self.export_dir_tx,
                     descri="Export Directory:",
                     tooltip="The directory the spritesheet will be exported to",
                 )
             ],
         )
 
-        self.exportDir.addWidget(self.exportDirButt)
-        self.exportDir.addWidget(self.exportDirResetButt)
-        self.topLayout.addLayout(self.exportDir)
+        self.export_dir.addWidget(self.export_dir_butt)
+        self.export_dir.addWidget(self.export_dir_reset_butt)
+        self.top_layout.addLayout(self.export_dir)
 
-        self.addDescribedWidget(
-            parent=self.topLayout,
+        self.add_described_widget(
+            parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
                     descri="Write json texture atlas ",
-                    widget=self.writeTextureAtlas,
+                    widget=self.write_texture_atlas,
                     tooltip=""
                     + "Write a json texture atlas that can be\n"
                     + "used in e.g. the Phaser 3 game framework",
@@ -207,11 +207,11 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.addDescribedWidget(
-            parent=self.topLayout,
+        self.add_described_widget(
+            parent=self.top_layout,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.customSettings,
+                    widget=self.custom_settings,
                     descri="Use Custom export Settings:",
                     tooltip=""
                     + "Whether to set yourself the number of rows, columns,\n"
@@ -221,15 +221,15 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.outerLayout.addLayout(self.topLayout, 0)
+        self.outer_layout.addLayout(self.top_layout, 0)
 
         # all this stuff will be hideable
-        self.addDescribedWidget(
-            parent=self.hideableLayout,
+        self.add_described_widget(
+            parent=self.hideable_layout,
             listWidgets=[
                 DescribedWidget(
                     descri="use layers as animation frames ",
-                    widget=self.layersAsAnimation,
+                    widget=self.layers_as_animation,
                     tooltip="Rather than exporting a spritesheet "
                     + "using as frames\n"
                     + "each frame of the timeline "
@@ -241,34 +241,34 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.hideableLayout.addItem(self.spacer)
+        self.hideable_layout.addItem(self.spacer)
 
         self.direction.addWidget(QLabel("sprites placement direction: \t"))
-        self.addDescribedWidget(
+        self.add_described_widget(
             parent=self.direction,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.horDir,
+                    widget=self.h_dir,
                     descri="Horizontal:",
                     tooltip="like so:\n1, 2, 3\n4, 5, 6\n7, 8, 9",
                 )
             ],
         )
 
-        self.addDescribedWidget(
+        self.add_described_widget(
             parent=self.direction,
             listWidgets=[
                 DescribedWidget(
-                    widget=self.vertDir,
+                    widget=self.v_dir,
                     descri="Vertical:",
                     tooltip="like so:\n1, 4, 7\n2, 5, 8\n3, 6, 9",
                 )
             ],
         )
 
-        self.hideableLayout.addLayout(self.direction)
+        self.hideable_layout.addLayout(self.direction)
 
-        self.hideableLayout.addItem(self.spacerBig)
+        self.hideable_layout.addItem(self.spacerBig)
 
         defaultsHint = QLabel("Leave any parameter at 0 to get a default value:")
         defaultsHint.setToolTip(
@@ -278,10 +278,10 @@ class UISpritesheetExporter:
             + "while leaving only columns at 0 and rows at 1\n"
             + "will set columns default at 16"
         )
-        self.hideableLayout.addWidget(defaultsHint)
+        self.hideable_layout.addWidget(defaultsHint)
 
-        self.addDescribedWidget(
-            parent=self.spinBoxes,
+        self.add_described_widget(
+            parent=self.spin_boxes,
             listWidgets=[
                 DescribedWidget(
                     widget=self.rows,
@@ -300,8 +300,8 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.addDescribedWidget(
-            parent=self.spinBoxes,
+        self.add_described_widget(
+            parent=self.spin_boxes,
             listWidgets=[
                 DescribedWidget(
                     widget=self.start,
@@ -330,9 +330,9 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.hideableLayout.addWidget(self.spinBoxesWidget)
+        self.hideable_layout.addWidget(self.spin_boxes_widget)
 
-        self.addDescribedWidget(
+        self.add_described_widget(
             parent=self.checkBoxes,
             listWidgets=[
                 DescribedWidget(
@@ -344,7 +344,7 @@ class UISpritesheetExporter:
             ],
         )
 
-        self.forceNewLayout = self.addDescribedWidget(
+        self.forceNewLayout = self.add_described_widget(
             parent=self.hiddenCheckboxLayout,
             listWidgets=[
                 DescribedWidget(
@@ -362,32 +362,32 @@ class UISpritesheetExporter:
 
         # have removeTmp toggle forceNew's and sprites export dir's visibility
         self.checkBoxes.addWidget(self.hiddenCheckbox)
-        self.hideableLayout.addLayout(self.checkBoxes)
+        self.hideable_layout.addLayout(self.checkBoxes)
         self.removeTmp.clicked.connect(self.toggleHiddenParams)
 
-        self.outerLayout.addWidget(self.hideableWidget)
+        self.outer_layout.addWidget(self.hideable_widget)
 
-        self.outerLayout.addWidget(self.OkCancelButtonBox)
+        self.outer_layout.addWidget(self.action_button_box)
         self.toggleHiddenParams()
         self.toggleHideable()
 
     def exclusiveVertToHor(self):
-        self.exclusiveCheckBoxUpdate(trigger=self.vertDir, triggered=self.horDir)
+        self.exclusiveCheckBoxUpdate(trigger=self.v_dir, triggered=self.h_dir)
 
     def exclusiveHorToVert(self):
-        self.exclusiveCheckBoxUpdate(trigger=self.horDir, triggered=self.vertDir)
+        self.exclusiveCheckBoxUpdate(trigger=self.h_dir, triggered=self.v_dir)
 
     def exclusiveCheckBoxUpdate(self, trigger, triggered):
         if triggered.isChecked() == trigger.isChecked():
             triggered.setChecked(not trigger.isChecked())
 
     def toggleHideable(self):
-        if self.customSettings.isChecked():
-            self.hideableWidget.show()
-            self.mainDialog.adjustSize()
+        if self.custom_settings.isChecked():
+            self.hideable_widget.show()
+            self.main_dialog.adjustSize()
         else:
-            self.hideableWidget.hide()
-            self.mainDialog.adjustSize()
+            self.hideable_widget.hide()
+            self.main_dialog.adjustSize()
 
     def toggleHiddenParams(self):
         if self.removeTmp.isChecked():
@@ -396,13 +396,13 @@ class UISpritesheetExporter:
 
     def showExportDialog(self):
         self.doc = KI.activeDocument()
-        if self.exportDirTx.text() == "":
+        if self.export_dir_tx.text() == "":
             self.resetExportDir()
-        self.mainDialog.setWindowTitle(i18n("SpritesheetExporter"))
-        self.mainDialog.setSizeGripEnabled(True)
-        self.mainDialog.show()
-        self.mainDialog.activateWindow()
-        self.mainDialog.setDisabled(False)
+        self.main_dialog.setWindowTitle(i18n("SpritesheetExporter"))
+        self.main_dialog.setSizeGripEnabled(True)
+        self.main_dialog.show()
+        self.main_dialog.activateWindow()
+        self.main_dialog.setDisabled(False)
 
     def changeExportDir(self):
         self.exportDirDialog = QFileDialog()
@@ -412,30 +412,30 @@ class UISpritesheetExporter:
         # we grab the output path on directory changed
         self.exportPath = self.exportDirDialog.getExistingDirectory()
         if self.exportPath != "":
-            self.exportDirTx.setText(str(self.exportPath))
+            self.export_dir_tx.setText(str(self.exportPath))
 
     # go back to the same folder where your .kra is
     def resetExportDir(self):
         if self.doc and self.doc.fileName():
             self.exportPath = Path(self.doc.fileName()).parents[0]
-        self.exportDirTx.setText(str(self.exportPath))
+        self.export_dir_tx.setText(str(self.exportPath))
 
     def confirmButton(self):
         # if you double click it shouldn't interrupt
         # the first run of the function with a new one
-        self.mainDialog.setDisabled(True)
+        self.main_dialog.setDisabled(True)
 
-        self.exp.exportName = self.exportName.text().split(".")[0]
-        self.exp.exportDir = Path(self.exportPath)
-        self.exp.layersAsAnimation = self.layersAsAnimation.isChecked()
-        self.exp.writeTextureAtlas = self.writeTextureAtlas.isChecked()
-        self.exp.isHorizontal = self.horDir.isChecked()
+        self.exp.export_name = self.export_name.text().split(".")[0]
+        self.exp.export_dir = Path(self.exportPath)
+        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
+        self.exp.write_texture_atlas = self.write_texture_atlas.isChecked()
+        self.exp.horizontal = self.h_dir.isChecked()
         self.exp.rows = self.rows.value()
         self.exp.columns = self.columns.value()
         self.exp.start = self.start.value()
         self.exp.end = self.end.value()
         self.exp.step = self.step.value()
         self.exp.removeTmp = self.removeTmp.isChecked()
-        self.exp.forceNew = self.forceNew.isChecked()
+        self.exp.force_new = self.forceNew.isChecked()
         self.exp.export()
-        self.mainDialog.hide()
+        self.main_dialog.hide()
