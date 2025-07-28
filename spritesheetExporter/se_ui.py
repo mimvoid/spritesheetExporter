@@ -82,6 +82,7 @@ class UISpritesheetExporter:
     # we let people export each layer as an animation frame if they wish
     layers_as_animation = QCheckBox(text="Use layers as animation frames")
     write_texture_atlas = QCheckBox(text="Write JSON texture atlas")
+    export_frames = QCheckBox(text="Export individual frames")
 
     # We want to let the user choose if they want the final spritesheet
     # to be horizontally- or vertically-oriented.
@@ -182,6 +183,7 @@ class UISpritesheetExporter:
         self.export_dir.addWidget(self.export_dir_reset_butt)
 
         self.top_layout.addLayout(self.export_dir)
+        self.top_layout.addWidget(self.export_frames)
         self.top_layout.addWidget(self.write_texture_atlas)
 
         self.outer_layout.addLayout(self.top_layout, 0)
@@ -297,8 +299,9 @@ class UISpritesheetExporter:
 
         self.exp.export_name = self.export_name.text().split(".")[0]
         self.exp.export_dir = Path(self.exportPath)
-        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
+        self.exp.export_individual_frames = self.export_frames.isChecked()
         self.exp.write_texture_atlas = self.write_texture_atlas.isChecked()
+        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
         self.exp.horizontal = self.direction.h_dir.isChecked()
         self.exp.rows = self.rows.value()
         self.exp.columns = self.columns.value()

@@ -25,6 +25,7 @@ class SpritesheetExporter:
     start = DEFAULT_TIME
     end = DEFAULT_TIME
 
+    export_individual_frames = True
     force_new = False
     step = 1
     layers_as_animation = False
@@ -130,6 +131,25 @@ class SpritesheetExporter:
     def make_export_path(self, suffix=""):
         return self.export_dir.joinpath(self.export_name + suffix)
 
+    def _make_frames_dir(self):
+        frames_dir = self.make_export_path("_sprites")
+
+        if frames_dir.exists():
+            if self.force_new:
+                export_num = 0
+
+                def export_candidate():
+                    return self.make_export_path("_sprites" + str(export_num))
+
+                while export_candidate().exists():
+                    export_num += 1
+                frames_dir = export_candidate()
+                frames_dir.mkdir()
+        else:
+            frames_dir.mkdir()
+
+        return frames_dir
+
     def _copy_frames(self, src: Document, dest: Document) -> int:
         """
         Copies frames from the source document to the destination.
@@ -170,6 +190,60 @@ class SpritesheetExporter:
                 num_frames += 1
 
         return num_frames
+
+    def _process_frames(self, src: Document, dest: Document):
+        width = src.width()
+        height = src.height()
+
+        frames_dir = self._make_frames_dir() if self.export_individual_frames else None
+        texture_atlas = {"frames": []} if self.write_texture_atlas else None
+
+        for layer in dest.rootNode().childNodes():
+            name = layer.name()
+
+            if frames_dir is not None:
+                file_name = f"sprite_{name.zfill(3)}.png"
+                new_doc = KI.createDocument(
+                    width,
+                    height,
+                    file_name,
+                    src.colorModel(),
+                    src.colorDepth(),
+                    src.colorProfile(),
+                    src.resolution(),
+                )
+
+                # Copy the layer
+                export_layer = new_doc.createCloneLayer(name, layer)
+                new_doc.rootNode().setChildNodes([export_layer])
+
+                # Save the new document
+                new_doc.setBatchmode(True)
+                new_doc.saveAs(str(frames_dir.joinpath(file_name)))
+
+            self._position_layer(
+                layer,
+                ((int(name) - self.start) / self.step),
+                width,
+                height,
+            )
+
+            if texture_atlas is not None:
+                dest.waitForDone()
+                texture_atlas["frames"].append(
+                    {
+                        "frame": {
+                            "x": layer.position().x(),
+                            "y": layer.position().y(),
+                            "w": width,
+                            "h": height,
+                        },
+                    }
+                )
+
+        if texture_atlas is not None:
+            with open(str(self.make_export_path(".json")), "w") as f:
+                json.dump(texture_atlas, f)
 
     def export(self, debug=False):
         """
@@ -231,35 +305,12 @@ class SpritesheetExporter:
 
         # Remove the default Background layer
         sheet.rootNode().childNodes()[0].remove()
-        texture_atlas = {"frames": []} if self.write_texture_atlas else None
 
-        for layer in sheet.rootNode().childNodes():
-            index = int(layer.name())
-            self._position_layer(
-                layer,
-                ((index - self.start) / self.step),
-                width,
-                height,
-            )
+        # Position frames, and optionally write JSON or export all frames
+        self._process_frames(doc, sheet)
 
-            if texture_atlas is not None:
-                doc.waitForDone()
-                texture_atlas["frames"].append(
-                    {
-                        "frame": {
-                            "x": layer.position().x(),
-                            "y": layer.position().y(),
-                            "w": width,
-                            "h": height,
-                        },
-                    }
-                )
-
-        # refresh canvas so the layers are shown
-        sheet.refreshProjection()
-
-        # Show the canvas to the user
-        KI.activeWindow().addView(sheet)
+        sheet.refreshProjection()  # Refresh canvas to show the layers
+        KI.activeWindow().addView(sheet)  # Show the canvas to the user
 
         if debug:
             print(f"Saving spritesheet to {sheet.fileName()}")
@@ -267,10 +318,6 @@ class SpritesheetExporter:
         if not self.show_export_dialog:
             sheet.setBatchmode(True)
         sheet.save()
-
-        if texture_atlas is not None:
-            with open(str(self.make_export_path(".json")), "w") as f:
-                json.dump(texture_atlas, f)
 
         if debug:
             print("All done!")
