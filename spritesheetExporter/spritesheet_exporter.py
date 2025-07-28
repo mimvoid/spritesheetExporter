@@ -175,7 +175,7 @@ class SpritesheetExporter:
 
         # Remove the default Background layer
         sheet.rootNode().childNodes()[0].remove()
-        textureAtlas = {"frames": []}
+        textureAtlas = {"frames": []} if self.writeTextureAtlas else None
 
         for layer in sheet.rootNode().childNodes():
             doc.waitForDone()
@@ -188,7 +188,7 @@ class SpritesheetExporter:
                 height,
             )
 
-            if self.writeTextureAtlas:
+            if textureAtlas is not None:
                 textureAtlas["frames"].append(
                     {
                         "frame": {
@@ -212,7 +212,7 @@ class SpritesheetExporter:
         # Show the canvas to the user
         KI.activeWindow().addView(sheet)
 
-        if self.writeTextureAtlas:
+        if textureAtlas is not None:
             with open(str(self.sheetExportPath(".json")), "w") as f:
                 json.dump(textureAtlas, f)
 
