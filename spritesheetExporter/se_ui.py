@@ -8,8 +8,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QFormLayout,
+    QGridLayout,
     QGroupBox,
-    QFrame,
     QPushButton,
     QFileDialog,
     QSpinBox,
@@ -73,51 +73,87 @@ class CommonSettings(QFormLayout):
         exp.write_texture_atlas = self.write_texture_atlas.isChecked()
 
 
-class DirectionRadio(QFormLayout):
+class SpritePlacement(QFormLayout):
     """
-    Lets the user choose if they want the final spreadsheet to be
-    horizontally or vertically oriented.
+    Lets the user choose if they want the spreadsheet horizontally or vertically
+    oriented, and how many cells to put in that direction.
     """
 
     h_dir = QRadioButton("Horizontal")
     v_dir = QRadioButton("Vertical")
 
+    columns = QSpinBox(minimum=DEFAULT_SPACE)
+    rows = QSpinBox(minimum=DEFAULT_SPACE)
+
     def __init__(self):
         super().__init__()
+        self.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
+        self.setHorizontalSpacing(12)
 
         self.h_dir.setChecked(True)
+        self.h_dir.setToolTip("Order the sprites horizontally")
+        self.v_dir.setToolTip("Order the sprites vertically")
 
-        buttons = QHBoxLayout()
-        buttons.addWidget(self.h_dir)
-        buttons.addWidget(self.v_dir)
-        self.addRow("Sprite placement direction:", buttons)
+        self.columns.setValue(DEFAULT_SPACE)
+        self.columns.setSpecialValueText("Auto")
+        self.columns.setToolTip("Number of columns in the spritesheet")
+
+        self.rows.setEnabled(False)
+        self.rows.setValue(DEFAULT_SPACE)
+        self.rows.setSpecialValueText("Auto")
+        self.rows.setToolTip("Number of rows in the spritesheet")
+
+        self.h_dir.toggled.connect(self.toggle_horizontal)
+        self.v_dir.toggled.connect(self.toggle_vertical)
+
+        col_layout = QFormLayout()
+        col_layout.setHorizontalSpacing(4)
+        col_layout.addRow("Columns:", self.columns)
+
+        row_layout = QFormLayout()
+        row_layout.setHorizontalSpacing(4)
+        row_layout.addRow("Rows:", self.rows)
+
+        field = QGridLayout()
+        field.addWidget(self.h_dir, 0, 0)
+        field.addWidget(self.v_dir, 0, 1)
+        field.addLayout(col_layout, 1, 0)
+        field.addLayout(row_layout, 1, 1)
+
+        self.addRow("Sprite placement:", field)
+
+    def toggle_horizontal(self, checked: bool):
+        self.columns.setEnabled(checked)
+        self.rows.setEnabled(not checked)
+
+    def toggle_vertical(self, checked: bool):
+        self.columns.setEnabled(not checked)
+        self.rows.setEnabled(checked)
+
+    def apply_settings(self, exp: SpritesheetExporter):
+        if self.h_dir.isChecked():
+            exp.horizontal = True
+            exp.size = self.columns.value()
+        else:
+            exp.horizontal = False
+            exp.size = self.rows.value()
 
 
-class SpinBoxes(QFrame):
-    rows = QSpinBox(minimum=DEFAULT_SPACE)
-    columns = QSpinBox(minimum=DEFAULT_SPACE)
-
+class SpinBoxes(QFormLayout):
     start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
     end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
     step = QSpinBox(minimum=1)
 
     def __init__(self):
         super().__init__()
-        self.setFrameShape(QFrame.Panel)
-        self.setFrameShadow(QFrame.Sunken)
-
-        for i in (self.rows, self.columns, self.start, self.end, self.step):
-            i.setSpecialValueText("Auto")
-
-        self.rows.setValue(DEFAULT_SPACE)
-        self.columns.setValue(DEFAULT_SPACE)
-
-        self.rows.setToolTip("Number of rows in the spritesheet")
-        self.columns.setToolTip("Number of columns in the spritesheet")
 
         self.start.setValue(DEFAULT_TIME)
         self.end.setValue(DEFAULT_TIME)
         self.step.setValue(1)
+
+        self.start.setSpecialValueText("Auto")
+        self.end.setSpecialValueText("Auto")
+        self.step.setSpecialValueText("Auto")
 
         self.start.setToolTip("First frame time of the animation (inclusive)")
         self.end.setToolTip("Last frame time of the animation (inclusive)")
@@ -125,22 +161,11 @@ class SpinBoxes(QFrame):
             "Only export each 'step' number of frames.\nDefaults to every frame"
         )
 
-        space = QFormLayout()
-        space.addRow("Rows:", self.rows)
-        space.addRow("Columns:", self.columns)
-
-        time = QFormLayout()
-        time.addRow("Start:", self.start)
-        time.addRow("End:", self.end)
-        time.addRow("Step:", self.step)
-
-        layout = QHBoxLayout(self)
-        layout.addLayout(space)
-        layout.addLayout(time)
+        self.addRow("Start:", self.start)
+        self.addRow("End:", self.end)
+        self.addRow("Step:", self.step)
 
     def apply_settings(self, exp: SpritesheetExporter):
-        exp.rows = self.rows.value()
-        exp.columns = self.columns.value()
         exp.start = self.start.value()
         exp.end = self.end.value()
         exp.step = self.step.value()
@@ -154,7 +179,7 @@ class UISpritesheetExporter:
 
     # Extra settings group
     layers_as_animation = QCheckBox("Use layers as animation frames")
-    direction = DirectionRadio()
+    placement = SpritePlacement()
     spin_boxes = SpinBoxes()
     force_new = QCheckBox("Force new folder")
 
@@ -189,9 +214,10 @@ class UISpritesheetExporter:
 
         extras.addWidget(self.layers_as_animation)
         extras.addSpacing(10)
-        extras.addLayout(self.direction)
-        extras.addSpacing(20)
-        extras.addWidget(self.spin_boxes)
+        extras.addLayout(self.placement)
+        extras.addSpacing(10)
+        extras.addLayout(self.spin_boxes)
+        extras.addSpacing(10)
         extras.addWidget(self.force_new)
 
         root_layout = QVBoxLayout(self.dialog)  # the box holding everything
@@ -240,12 +266,10 @@ class UISpritesheetExporter:
         self.dialog.setDisabled(True)
 
         self.common_settings.apply_settings(self.exp)
-
-        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
-        self.exp.horizontal = self.direction.h_dir.isChecked()
-
+        self.placement.apply_settings(self.exp)
         self.spin_boxes.apply_settings(self.exp)
 
+        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
         self.exp.force_new = self.force_new.isChecked()
 
         self.exp.export()

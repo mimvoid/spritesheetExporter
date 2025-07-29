@@ -20,8 +20,7 @@ class SpritesheetExporter:
     export_path = Path.home().joinpath("spritesheet.png")
 
     horizontal = True
-    rows = DEFAULT_SPACE
-    columns = DEFAULT_SPACE
+    size = DEFAULT_SPACE
     start = DEFAULT_TIME
     end = DEFAULT_TIME
 
@@ -189,7 +188,6 @@ class SpritesheetExporter:
     def _process_frames(self, src: Document, dest: Document):
         width = src.width()
         height = src.height()
-        num_cells = self.columns if self.horizontal else self.rows
 
         frames_dir = self._make_frames_dir() if self.export_individual_frames else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
@@ -207,19 +205,15 @@ class SpritesheetExporter:
                     QRect(0, 0, width, height),
                 )
 
-            # TODO: This is too simple for edge cases, like when the direction
-            # is horizontal and there are 7 frames, 2 columns, and 5 rows
-            # (there are not enough frames to fill out all 5 rows if they're
-            # simply placed horizontally and wrap onto the next row when needed)
             if self.layers_as_animation:
                 index = int(name)
             else:
                 index = (int(name) - self.start) // self.step
 
-            layer.move(
-                (index % num_cells) * width,
-                (index // num_cells) * height,
-            )
+            if self.horizontal:
+                layer.move((index % self.size) * width, (index // self.size) * height)
+            else:
+                layer.move((index // self.size) * width, (index % self.size) * height)
 
             if texture_atlas is not None:
                 dest.waitForDone()
@@ -273,17 +267,21 @@ class SpritesheetExporter:
         sheet.setFileName(str(self.export_path))
         num_frames = self._copy_frames(doc, sheet)
 
-        # getting a default value for rows and columns
-        if self.rows == DEFAULT_SPACE:
-            if self.columns == DEFAULT_SPACE:
-                self.columns = ceil(sqrt(num_frames))  # square fit
+        if self.size == DEFAULT_SPACE:
+            # Pack the sprites as densely as possible with a square fit
+            self.size = ceil(sqrt(num_frames))
+            columns, rows = self.size, self.size
+        else:
+            # Remove empty sprite cells
+            self.size = min(self.size, num_frames)
 
-            self.rows = ceil(num_frames / self.columns)
-        elif self.columns == DEFAULT_SPACE:
-            self.columns = ceil(num_frames / self.rows)
+            columns = self.size
+            rows = ceil(num_frames / columns)
+            if not self.horizontal:
+                columns, rows = rows, columns
 
-        sheet.setWidth(self.columns * width)
-        sheet.setHeight(self.rows * height)
+        sheet.setWidth(columns * width)
+        sheet.setHeight(rows * height)
 
         if debug:
             print(
