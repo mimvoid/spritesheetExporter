@@ -171,7 +171,7 @@ class UISpritesheetExporter:
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
         self.layers_as_animation.setToolTip(
-            "Whether to export each individual frame into its own file"
+            "Whether to treat each layer as a frame instead of using the animation timeline"
         )
         self.force_new.setToolTip(
             "If checked, create a new individual frames folder if one already exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
