@@ -7,20 +7,16 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
-    QGridLayout,
     QFormLayout,
     QGroupBox,
     QFrame,
     QPushButton,
     QFileDialog,
-    QLabel,
     QSpinBox,
     QDialog,
     QLineEdit,
-    QWidget,
     QCheckBox,
     QDialogButtonBox,
-    QSpacerItem,
     QRadioButton,
 )
 from builtins import i18n
@@ -34,23 +30,6 @@ from .spritesheet_exporter import (
     DEFAULT_SPACE,
     DEFAULT_TIME,
 )
-
-
-class DescribedWidget:
-    widget: QWidget
-    label: QLabel
-
-    def __init__(
-        self, widget: QWidget, description: str, tooltip: Optional[str] = None
-    ):
-        self.widget = widget
-
-        self.label = QLabel(description)
-        self.label.setBuddy(widget)
-
-        if tooltip:
-            widget.setToolTip(tooltip)
-            self.label.setToolTip(tooltip)
 
 
 class CommonSettings(QFormLayout):
@@ -95,44 +74,27 @@ class CommonSettings(QFormLayout):
         exp.write_texture_atlas = self.write_texture_atlas.isChecked()
 
 
-class DirectionRadio(QHBoxLayout):
+class DirectionRadio(QFormLayout):
     """
     Lets the user choose if they want the final spreadsheet to be
     horizontally or vertically oriented.
     """
 
-    h_dir = QRadioButton(text="Horizontal")
-    v_dir = QRadioButton(text="Vertical")
+    h_dir = QRadioButton("Horizontal")
+    v_dir = QRadioButton("Vertical")
 
     def __init__(self):
         super().__init__()
 
         self.h_dir.setChecked(True)
 
-        self.addWidget(QLabel("Sprite placement direction:"))
-        self.addWidget(self.h_dir)
-        self.addWidget(self.v_dir)
+        buttons = QHBoxLayout()
+        buttons.addWidget(self.h_dir)
+        buttons.addWidget(self.v_dir)
+        self.addRow("Sprite placement direction:", buttons)
 
 
-class UISpritesheetExporter:
-    exp = SpritesheetExporter()
-
-    dialog = QDialog()  # the main window
-    root_layout = QVBoxLayout(dialog)  # the box holding everything
-
-    common_settings = CommonSettings()
-
-    # Advanced settings group
-    advanced_settings = QGroupBox("Advanced Settings")
-    advanced_layout = QVBoxLayout()
-
-    layers_as_animation = QCheckBox(text="Use layers as animation frames")
-    direction = DirectionRadio()
-
-    # a box holding the boxes with rows columns and start end
-    spin_boxes_widget = QFrame()
-    spin_boxes = QHBoxLayout(spin_boxes_widget)
-
+class SpinBoxes(QFrame):
     rows = QSpinBox(minimum=DEFAULT_SPACE)
     columns = QSpinBox(minimum=DEFAULT_SPACE)
 
@@ -140,7 +102,63 @@ class UISpritesheetExporter:
     end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
     step = QSpinBox(minimum=1)
 
-    force_new = QCheckBox(text="Force new folder")
+    def __init__(self):
+        super().__init__()
+        self.setFrameShape(QFrame.Panel)
+        self.setFrameShadow(QFrame.Sunken)
+
+        self.rows.setValue(DEFAULT_SPACE)
+        self.columns.setValue(DEFAULT_SPACE)
+
+        self.rows.setToolTip(
+            "If left 0, number of rows depends on columns.\nIf both are 0, tries to form a square"
+        )
+        self.columns.setToolTip(
+            "If left 0, number of columns depends rows.\nIf both are 0, tries to form a square"
+        )
+
+        self.start.setValue(DEFAULT_TIME)
+        self.end.setValue(DEFAULT_TIME)
+        self.step.setValue(1)
+
+        self.start.setToolTip("First frame time of the animation (inclusive)")
+        self.end.setToolTip("Last frame time of the animation (inclusive)")
+        self.step.setToolTip(
+            "Only export each 'step' number of frames.\nDefaults to every frame"
+        )
+
+        space = QFormLayout()
+        space.addRow("Rows:", self.rows)
+        space.addRow("Columns:", self.columns)
+
+        time = QFormLayout()
+        time.addRow("Start:", self.start)
+        time.addRow("End:", self.end)
+        time.addRow("Step:", self.step)
+
+        layout = QHBoxLayout(self)
+        layout.addLayout(space)
+        layout.addLayout(time)
+
+    def apply_settings(self, exp: SpritesheetExporter):
+        exp.rows = self.rows.value()
+        exp.columns = self.columns.value()
+        exp.start = self.start.value()
+        exp.end = self.end.value()
+        exp.step = self.step.value()
+
+
+class UISpritesheetExporter:
+    exp = SpritesheetExporter()
+    dialog = QDialog()  # the main window
+
+    common_settings = CommonSettings()
+
+    # Extra settings group
+    layers_as_animation = QCheckBox("Use layers as animation frames")
+    direction = DirectionRadio()
+    spin_boxes = SpinBoxes()
+    force_new = QCheckBox("Force new folder")
 
     dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
@@ -153,118 +171,35 @@ class UISpritesheetExporter:
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
-        self.advanced_settings.setCheckable(True)
-        self.advanced_settings.setChecked(False)
-        self.advanced_settings.setLayout(self.advanced_layout)
-
-        self.spin_boxes_widget.setFrameShape(QFrame.Panel)
-        self.spin_boxes_widget.setFrameShadow(QFrame.Sunken)
-
-        self.rows.setValue(DEFAULT_SPACE)
-        self.columns.setValue(DEFAULT_SPACE)
-
-        self.start.setValue(DEFAULT_TIME)
-        self.end.setValue(DEFAULT_TIME)
-        self.step.setValue(1)
+        self.layers_as_animation.setToolTip(
+            "Whether to export each individual frame into its own file"
+        )
+        self.force_new.setToolTip(
+            "If checked, create a new individual frames folder if one already exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
+        )
 
         self.dialog_buttons.accepted.connect(self.confirmButton)
         self.dialog_buttons.rejected.connect(self.dialog.close)
 
-        self.initialize_export()
+        # Setup layouts
+        extra_settings = QGroupBox("Extra Settings")
+        extra_settings.setCheckable(True)
+        extra_settings.setChecked(False)
 
-    # I would have used QFormLayout's addRow
-    # except it doesn't let you add a tooltip to the row's name
-    # (adding a tooltip to the whole layout would have been best
-    #  but doesn't seem possible)
-    @staticmethod
-    def add_described_widget(parent, listWidgets, align=Qt.AlignLeft):
-        layout = QGridLayout()
+        extras = QVBoxLayout()
+        extra_settings.setLayout(extras)
 
-        for row, widget in enumerate(listWidgets):
-            layout.addWidget(widget.label, row, 0)
-            layout.addWidget(widget.widget, row, 1)
+        extras.addWidget(self.layers_as_animation)
+        extras.addSpacing(10)
+        extras.addLayout(self.direction)
+        extras.addSpacing(20)
+        extras.addWidget(self.spin_boxes)
+        extras.addWidget(self.force_new)
 
-        layout.setAlignment(align)
-        parent.addLayout(layout)
-        return layout
-
-    def initialize_export(self):
-        self.root_layout.addLayout(self.common_settings)
-
-        self.advanced_layout.addWidget(self.layers_as_animation)
-        self.advanced_layout.addItem(QSpacerItem(10, 10))
-        self.advanced_layout.addLayout(self.direction)
-        self.advanced_layout.addItem(QSpacerItem(20, 20))
-
-        defaultsHint = QLabel("Leave any parameter at 0 to get a default value:")
-        defaultsHint.setToolTip(
-            "For example with 16 sprites, leaving both rows and columns at 0\n"
-            + "will set their defaults to 4 each\n"
-            + "while leaving only columns at 0 and rows at 1\n"
-            + "will set columns default at 16"
-        )
-        self.advanced_layout.addWidget(defaultsHint)
-
-        self.add_described_widget(
-            parent=self.spin_boxes,
-            listWidgets=[
-                DescribedWidget(
-                    self.rows,
-                    "Rows:",
-                    "Number of rows of the spritesheet;\n"
-                    + "default is assigned depending on columns number\n"
-                    + "or if 0 columns tries to form a square ",
-                ),
-                DescribedWidget(
-                    self.columns,
-                    "Columns:",
-                    "Number of columns of the spritesheet;\n"
-                    + "default is assigned depending on rows number\n"
-                    + "or if 0 rows tries to form a square",
-                ),
-            ],
-        )
-
-        self.add_described_widget(
-            parent=self.spin_boxes,
-            listWidgets=[
-                DescribedWidget(
-                    self.start,
-                    "Start:",
-                    "First frame of the animation timeline (included) "
-                    + "to be added to the spritesheet;\n"
-                    + "default is first keyframe after "
-                    + "the Start frame of the Animation docker",
-                ),
-                DescribedWidget(
-                    self.end,
-                    "End:",
-                    "Last frame of the animation timeline (included) "
-                    + "to be added to the spritesheet;\n"
-                    + "default is last keyframe before "
-                    + "the End frame of the Animation docker",
-                ),
-                DescribedWidget(
-                    self.step,
-                    "Step:",
-                    "only consider every 'step' frame "
-                    + "to be added to the spritesheet;\n"
-                    + "default is 1 (use every frame)",
-                ),
-            ],
-        )
-
-        self.advanced_layout.addWidget(self.spin_boxes_widget)
-
-        self.force_new.setToolTip(
-            "If there is already a folder with the same name as the individual sprites export folder,\n"
-            + "whether to create a new one (checked) or write the sprites in the existing folder,\n"
-            + "possibly overwriting other files (unchecked)",
-        )
-        self.advanced_layout.addWidget(self.force_new)
-
-        self.root_layout.addWidget(self.advanced_settings)
-        self.root_layout.addWidget(self.dialog_buttons)
+        root_layout = QVBoxLayout(self.dialog)  # the box holding everything
+        root_layout.addLayout(self.common_settings)
+        root_layout.addWidget(extra_settings)
+        root_layout.addWidget(self.dialog_buttons)
 
     def show_dialog(self):
         if self.common_settings.directory.text() == "":
@@ -310,11 +245,9 @@ class UISpritesheetExporter:
 
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
         self.exp.horizontal = self.direction.h_dir.isChecked()
-        self.exp.rows = self.rows.value()
-        self.exp.columns = self.columns.value()
-        self.exp.start = self.start.value()
-        self.exp.end = self.end.value()
-        self.exp.step = self.step.value()
+
+        self.spin_boxes.apply_settings(self.exp)
+
         self.exp.force_new = self.force_new.isChecked()
 
         self.exp.export()
