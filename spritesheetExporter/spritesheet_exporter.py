@@ -2,8 +2,9 @@
 The backend that handles exporting spritesheet.
 """
 
-from krita import Krita, Document, Node
+from krita import Krita, Document, Node, InfoObject
 from builtins import Application
+from PyQt5.QtCore import QRect
 
 from collections.abc import Iterable
 from math import sqrt, ceil
@@ -198,23 +199,13 @@ class SpritesheetExporter:
 
             if frames_dir is not None:
                 file_name = "".join(["sprite_", name.zfill(3), self.export_path.suffix])
-                new_doc = KI.createDocument(
-                    width,
-                    height,
-                    file_name,
-                    src.colorModel(),
-                    src.colorDepth(),
-                    src.colorProfile(),
-                    src.resolution(),
+                layer.save(
+                    str(frames_dir.joinpath(file_name)),
+                    dest.xRes(),
+                    dest.yRes(),
+                    InfoObject(),
+                    QRect(0, 0, width, height),
                 )
-
-                # Copy the layer
-                export_layer = new_doc.createCloneLayer(name, layer)
-                new_doc.rootNode().setChildNodes([export_layer])
-
-                # Save the new document
-                new_doc.setBatchmode(True)
-                new_doc.saveAs(str(frames_dir.joinpath(file_name)))
 
             # TODO: This is too simple for edge cases, like when the direction
             # is horizontal and there are 7 frames, 2 columns, and 5 rows
