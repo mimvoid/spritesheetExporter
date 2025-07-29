@@ -5,12 +5,13 @@ and displays the configuration options to the user.
 
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-    QGridLayout,
     QVBoxLayout,
+    QHBoxLayout,
+    QGridLayout,
+    QFormLayout,
     QGroupBox,
     QFrame,
     QPushButton,
-    QHBoxLayout,
     QFileDialog,
     QLabel,
     QSpinBox,
@@ -50,42 +51,46 @@ class DescribedWidget:
             self.label.setToolTip(tooltip)
 
 
-class ExportSettings(QVBoxLayout):
+class CommonSettings(QFormLayout):
     name = QLineEdit()
     directory = QLineEdit()
-    change_button = QPushButton(KI.icon("folder"), None)
-    reset_button = QPushButton(KI.icon("view-refresh"), None)
+    change_dir = QPushButton(KI.icon("folder"), None)
+    reset_dir = QPushButton(KI.icon("view-refresh"), None)
+
+    export_frames = QCheckBox("Export individual frames")
+    write_texture_atlas = QCheckBox("Write JSON texture atlas")
 
     def __init__(self):
         super().__init__()
 
-        name_label = QLabel("Export name:")
-        name_label.setBuddy(self.name)
         self.name.setToolTip("The name of the exported spritesheet file")
-
-        dir_label = QLabel("Export directory:")
-        dir_label.setBuddy(self.directory)
         self.directory.setToolTip("The directory the spritesheet will be exported to")
 
-        self.change_button.setToolTip(
-            "Open a file picker to choose the export directory"
-        )
-        self.reset_button.setToolTip(
+        self.change_dir.setToolTip("Open a file picker to choose the export directory")
+        self.reset_dir.setToolTip(
             "Reset export directory to the current document's directory"
         )
 
-        name_layout = QHBoxLayout()
-        name_layout.addWidget(name_label)
-        name_layout.addWidget(self.name)
+        self.export_frames.setToolTip("Export each sprite frame into its own file")
+        self.write_texture_atlas.setToolTip(
+            "Write a JSON texture atlas that can be used in game frameworks (e.g. Phaser 3)"
+        )
 
         dir_layout = QHBoxLayout()
-        dir_layout.addWidget(dir_label)
         dir_layout.addWidget(self.directory)
-        dir_layout.addWidget(self.change_button)
-        dir_layout.addWidget(self.reset_button)
+        dir_layout.addWidget(self.change_dir)
+        dir_layout.addWidget(self.reset_dir)
 
-        self.addLayout(name_layout)
-        self.addLayout(dir_layout)
+        self.addRow("Export name:", self.name)
+        self.addRow("Export directory:", dir_layout)
+        self.addRow(self.export_frames)
+        self.addRow(self.write_texture_atlas)
+
+    def apply_settings(self, exp: SpritesheetExporter):
+        exp.export_name = self.name.text().split(".")[0]
+        exp.export_dir = Path(self.directory.text())
+        exp.export_individual_frames = self.export_frames.isChecked()
+        exp.write_texture_atlas = self.write_texture_atlas.isChecked()
 
 
 class DirectionRadio(QHBoxLayout):
@@ -113,11 +118,7 @@ class UISpritesheetExporter:
     dialog = QDialog()  # the main window
     root_layout = QVBoxLayout(dialog)  # the box holding everything
 
-    # Top layout, holds simple settings
-    top_layout = QVBoxLayout()
-    export = ExportSettings()
-    write_texture_atlas = QCheckBox(text="Write JSON texture atlas")
-    export_frames = QCheckBox(text="Export individual frames")
+    common_settings = CommonSettings()
 
     # Advanced settings group
     advanced_settings = QGroupBox("Advanced Settings")
@@ -146,9 +147,9 @@ class UISpritesheetExporter:
         self.dialog.setWindowModality(Qt.NonModal)
         self.dialog.setMinimumSize(500, 100)
 
-        self.export.name.setText(self.exp.export_name)
-        self.export.change_button.clicked.connect(self.change_export_dir)
-        self.export.reset_button.clicked.connect(self.reset_export_dir)
+        self.common_settings.name.setText(self.exp.export_name)
+        self.common_settings.change_dir.clicked.connect(self.change_export_dir)
+        self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
         self.advanced_settings.setCheckable(True)
         self.advanced_settings.setChecked(False)
@@ -186,10 +187,7 @@ class UISpritesheetExporter:
         return layout
 
     def initialize_export(self):
-        self.top_layout.addLayout(self.export)
-        self.top_layout.addWidget(self.export_frames)
-        self.top_layout.addWidget(self.write_texture_atlas)
-        self.root_layout.addLayout(self.top_layout, 0)
+        self.root_layout.addLayout(self.common_settings)
 
         self.advanced_layout.addWidget(self.layers_as_animation)
         self.advanced_layout.addItem(QSpacerItem(10, 10))
@@ -267,7 +265,7 @@ class UISpritesheetExporter:
         self.root_layout.addWidget(self.dialog_buttons)
 
     def show_dialog(self):
-        if self.export.directory.text() == "":
+        if self.common_settings.directory.text() == "":
             self.reset_export_dir()
 
         self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
@@ -289,27 +287,25 @@ class UISpritesheetExporter:
         file_dialog.setSizeGripEnabled(True)
 
         # QFileDialog already seems to handle invalid directories fine
-        file_dialog.setDirectory(self.export.directory.text())
+        file_dialog.setDirectory(self.common_settings.directory.text())
 
         # we grab the output path on directory changed
         path = file_dialog.getExistingDirectory()
         if path != "":
-            self.export.directory.setText(str(path))
+            self.common_settings.directory.setText(str(path))
 
     def reset_export_dir(self):
         path = UISpritesheetExporter.current_directory()
         if path:
-            self.export.directory.setText(str(path))
+            self.common_settings.directory.setText(str(path))
 
     def confirmButton(self):
         # if you double click it shouldn't interrupt
         # the first run of the function with a new one
         self.dialog.setDisabled(True)
 
-        self.exp.export_name = self.export.name.text().split(".")[0]
-        self.exp.export_dir = Path(self.export.directory.text())
-        self.exp.export_individual_frames = self.export_frames.isChecked()
-        self.exp.write_texture_atlas = self.write_texture_atlas.isChecked()
+        self.common_settings.apply_settings(self.exp)
+
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
         self.exp.horizontal = self.direction.h_dir.isChecked()
         self.exp.rows = self.rows.value()
