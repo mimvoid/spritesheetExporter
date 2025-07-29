@@ -107,15 +107,14 @@ class SpinBoxes(QFrame):
         self.setFrameShape(QFrame.Panel)
         self.setFrameShadow(QFrame.Sunken)
 
+        for i in (self.rows, self.columns, self.start, self.end, self.step):
+            i.setSpecialValueText("Auto")
+
         self.rows.setValue(DEFAULT_SPACE)
         self.columns.setValue(DEFAULT_SPACE)
 
-        self.rows.setToolTip(
-            "If left 0, number of rows depends on columns.\nIf both are 0, tries to form a square"
-        )
-        self.columns.setToolTip(
-            "If left 0, number of columns depends rows.\nIf both are 0, tries to form a square"
-        )
+        self.rows.setToolTip("Number of rows in the spritesheet")
+        self.columns.setToolTip("Number of columns in the spritesheet")
 
         self.start.setValue(DEFAULT_TIME)
         self.end.setValue(DEFAULT_TIME)
