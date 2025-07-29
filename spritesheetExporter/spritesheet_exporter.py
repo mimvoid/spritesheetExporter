@@ -16,8 +16,7 @@ DEFAULT_SPACE = 0
 
 
 class SpritesheetExporter:
-    export_name = "spritesheet"
-    export_dir = Path.home()
+    export_path = Path.home().joinpath("spritesheet.png")
 
     horizontal = True
     rows = DEFAULT_SPACE
@@ -121,22 +120,22 @@ class SpritesheetExporter:
             if def_start:
                 self.start = 0
 
-    def make_export_path(self, suffix=""):
-        return self.export_dir.joinpath(self.export_name + suffix)
-
     def _make_frames_dir(self):
-        frames_dir = self.make_export_path("_sprites")
+        frames_dir = self.export_path.with_name(self.export_path.stem + "_sprites")
 
         if frames_dir.exists():
             if self.force_new:
                 export_num = 0
+                frames_dir = self.export_path.with_suffix(
+                    self.export_path.stem + "_sprites0"
+                )
 
-                def export_candidate():
-                    return self.make_export_path("_sprites" + str(export_num))
-
-                while export_candidate().exists():
+                while frames_dir.exists():
                     export_num += 1
-                frames_dir = export_candidate()
+                    frames_dir = self.export_path.with_suffix(
+                        "".join([self.export_path.stem, "_sprites", str(export_num)])
+                    )
+
                 frames_dir.mkdir()
         else:
             frames_dir.mkdir()
@@ -195,7 +194,7 @@ class SpritesheetExporter:
             name = layer.name()
 
             if frames_dir is not None:
-                file_name = f"sprite_{name.zfill(3)}.png"
+                file_name = "".join(["sprite_", name.zfill(3), self.export_path.suffix])
                 new_doc = KI.createDocument(
                     width,
                     height,
@@ -242,7 +241,7 @@ class SpritesheetExporter:
                 )
 
         if texture_atlas is not None:
-            with open(str(self.make_export_path(".json")), "w") as f:
+            with self.export_path.with_suffix(".json").open("w") as f:
                 json.dump(texture_atlas, f)
 
     def export(self, debug=False):
@@ -263,18 +262,21 @@ class SpritesheetExporter:
         width = doc.width()
         height = doc.height()
 
+        if self.export_path.suffix == "":
+            self.export_path = self.export_path.with_suffix(".png")
+
         # creating a new document where we'll put our sprites
         sheet = KI.createDocument(
             width,
             height,
-            self.export_name + ".png",
+            self.export_path.name,
             doc.colorModel(),
             doc.colorDepth(),
             doc.colorProfile(),
             doc.resolution(),
         )
 
-        sheet.setFileName(str(self.make_export_path(".png")))
+        sheet.setFileName(str(self.export_path))
         num_frames = self._copy_frames(doc, sheet)
 
         # getting a default value for rows and columns

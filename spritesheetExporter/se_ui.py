@@ -68,8 +68,7 @@ class CommonSettings(QFormLayout):
         self.addRow(self.write_texture_atlas)
 
     def apply_settings(self, exp: SpritesheetExporter):
-        exp.export_name = self.name.text().split(".")[0]
-        exp.export_dir = Path(self.directory.text())
+        exp.export_path = Path(self.directory.text(), self.name.text())
         exp.export_individual_frames = self.export_frames.isChecked()
         exp.write_texture_atlas = self.write_texture_atlas.isChecked()
 
@@ -166,7 +165,7 @@ class UISpritesheetExporter:
         self.dialog.setWindowModality(Qt.NonModal)
         self.dialog.setMinimumSize(500, 100)
 
-        self.common_settings.name.setText(self.exp.export_name)
+        self.common_settings.name.setText(self.exp.export_path.name)
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
