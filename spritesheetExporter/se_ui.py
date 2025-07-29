@@ -40,7 +40,9 @@ class DescribedWidget:
     widget: QWidget
     label: QLabel
 
-    def __init__(self, widget: QWidget, description: str, tooltip: str | None = None):
+    def __init__(
+        self, widget: QWidget, description: str, tooltip: Optional[str] = None
+    ):
         self.widget = widget
 
         self.label = QLabel(description)
