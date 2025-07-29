@@ -169,7 +169,9 @@ class SpritesheetExporter:
         if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
             self._set_frame_times(src)
 
+        initial_time = src.currentTime()
         frame_range = range(self.start, self.end + 1, self.step)
+
         for i in frame_range:
             src.setCurrentTime(i)
             layer = dest.createNode(str(i), "paintlayer")
@@ -179,6 +181,8 @@ class SpritesheetExporter:
             src.waitForDone()
             pixel_data = src.pixelData(0, 0, width, height)
             layer.setPixelData(pixel_data, 0, 0, width, height)
+
+        src.setCurrentTime(initial_time)  # reset time
 
         return len(frame_range)
 
@@ -314,6 +318,15 @@ class SpritesheetExporter:
         if not self.show_export_dialog:
             sheet.setBatchmode(True)
         sheet.save()
+
+        major, minor, patch = [int(i) for i in Application.version().split(".")]
+        can_set_modify = major > 5 or (
+            major == 5 and (minor > 1 or (minor == 1 and patch >= 2))
+        )
+        if can_set_modify:
+            doc.setModified(False)
+            if debug:
+                print("Removing modified flag from original document")
 
         if debug:
             print("All done!")
