@@ -32,13 +32,6 @@ class SpritesheetExporter:
     write_texture_atlas = False
     show_export_dialog = False
 
-    def _position_layer(self, layer: Node, imgNum: int, width: int, height: int):
-        distance = self.columns if self.horizontal else self.rows
-        layer.move(
-            int((imgNum % distance) * width),
-            int((imgNum // distance) * height),
-        )
-
     def _check_last_keyframe(self, layer: Node, time_range: Iterable[int]):
         """
         Finds the time of the layer's last keyframe, and updates the upper time limit
@@ -193,6 +186,7 @@ class SpritesheetExporter:
     def _process_frames(self, src: Document, dest: Document):
         width = src.width()
         height = src.height()
+        num_cells = self.columns if self.horizontal else self.rows
 
         frames_dir = self._make_frames_dir() if self.export_individual_frames else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
@@ -220,11 +214,18 @@ class SpritesheetExporter:
                 new_doc.setBatchmode(True)
                 new_doc.saveAs(str(frames_dir.joinpath(file_name)))
 
-            self._position_layer(
-                layer,
-                ((int(name) - self.start) / self.step),
-                width,
-                height,
+            # TODO: This is too simple for edge cases, like when the direction
+            # is horizontal and there are 7 frames, 2 columns, and 5 rows
+            # (there are not enough frames to fill out all 5 rows if they're
+            # simply placed horizontally and wrap onto the next row when needed)
+            if self.layers_as_animation:
+                index = int(name)
+            else:
+                index = (int(name) - self.start) // self.step
+
+            layer.move(
+                (index % num_cells) * width,
+                (index // num_cells) * height,
             )
 
             if texture_atlas is not None:
@@ -283,13 +284,7 @@ class SpritesheetExporter:
 
             self.rows = ceil(num_frames / self.columns)
         elif self.columns == DEFAULT_SPACE:
-            # Though if I have to guess the number of columns,
-            # it may also change the (user-set) number of rows.
-            # For example, if you want ten rows from twelve sprites
-            # instead of two rows of two and eight of one,
-            # you'll have six rows of two
             self.columns = ceil(num_frames / self.rows)
-            self.rows = ceil(num_frames / self.columns)
 
         sheet.setWidth(self.columns * width)
         sheet.setHeight(self.rows * height)
