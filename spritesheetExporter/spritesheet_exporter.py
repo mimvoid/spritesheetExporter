@@ -40,10 +40,9 @@ class SpritesheetExporter:
         @param doc The document to which the layer belongs to
         """
 
-        for frame in time_range:
-            if layer.hasKeyframeAtTime(frame):
-                if self.end < frame:
-                    self.end = frame
+        for time in time_range:
+            if layer.hasKeyframeAtTime(time):
+                self.end = max(self.end, time)
                 return
 
     def _check_first_keyframe(self, layer: Node, time_range: Iterable[int]):
@@ -55,10 +54,9 @@ class SpritesheetExporter:
         @param doc The document to which the layer belongs to
         """
 
-        for frame in time_range:
-            if layer.hasKeyframeAtTime(frame):
-                if self.start > frame:
-                    self.start = frame
+        for time in time_range:
+            if layer.hasKeyframeAtTime(time):
+                self.start = min(self.start, time)
                 return
 
     # get actual animation duration
@@ -105,6 +103,7 @@ class SpritesheetExporter:
                     self.step *= -1  # Make the step negative
 
             if def_end:
+                self.end = start_time
                 time_range = range(end_time, start_time - 1, -1)
                 for layer in filtered_layers:
                     self._check_last_keyframe(layer, time_range)
