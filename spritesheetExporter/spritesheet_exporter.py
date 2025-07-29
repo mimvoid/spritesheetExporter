@@ -163,33 +163,32 @@ class SpritesheetExporter:
         width = src.width()
         height = src.height()
 
-        num_frames = 0
-
         if self.layers_as_animation:
             paint_layers = src.rootNode().findChildNodes("", True, False, "paintlayer")
-            visible_layers = (i for i in paint_layers if i.visible())
+            visible_layers = [i for i in paint_layers if i.visible()]
 
             # export each visible layer
             for i, layer in enumerate(visible_layers):
                 clone_layer = dest.createCloneLayer(str(i), layer)
                 root.addChildNode(clone_layer, None)
-                num_frames += 1
-        else:
-            if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
-                self._set_frame_times(src)
 
-            for i in range(self.start, self.end + 1, self.step):
-                src.setCurrentTime(i)
-                layer = dest.createNode(str(i), "paintlayer")
-                root.addChildNode(layer, None)
+            return len(visible_layers)
 
-                # Ensure the time has been set before copying the pixel data
-                src.waitForDone()
-                pixel_data = src.pixelData(0, 0, width, height)
-                layer.setPixelData(pixel_data, 0, 0, width, height)
-                num_frames += 1
+        if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
+            self._set_frame_times(src)
 
-        return num_frames
+        frame_range = range(self.start, self.end + 1, self.step)
+        for i in frame_range:
+            src.setCurrentTime(i)
+            layer = dest.createNode(str(i), "paintlayer")
+            root.addChildNode(layer, None)
+
+            # Ensure the time has been set before copying the pixel data
+            src.waitForDone()
+            pixel_data = src.pixelData(0, 0, width, height)
+            layer.setPixelData(pixel_data, 0, 0, width, height)
+
+        return len(frame_range)
 
     def _process_frames(self, src: Document, dest: Document):
         width = src.width()
