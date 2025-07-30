@@ -25,6 +25,7 @@ class SpritesheetExporter:
     end = DEFAULT_TIME
 
     export_frame_sequence = False
+    base_name = "sprite"
     force_new = False
 
     step = 1
@@ -197,7 +198,9 @@ class SpritesheetExporter:
             name = layer.name()
 
             if frames_dir is not None:
-                file_name = "".join(["sprite_", name.zfill(3), self.export_path.suffix])
+                file_name = "".join(
+                    [self.base_name, name.zfill(3), self.export_path.suffix]
+                )
                 layer.save(
                     str(frames_dir.joinpath(file_name)),
                     dest.xRes(),

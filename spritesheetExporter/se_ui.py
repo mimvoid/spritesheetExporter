@@ -73,6 +73,7 @@ class FramesExport(QGroupBox):
     Controls configuration for exporting individual frames as an image sequence.
     """
 
+    base_name = QLineEdit("sprite")
     force_new = QCheckBox("Force new folder")
 
     def __init__(self):
@@ -84,8 +85,9 @@ class FramesExport(QGroupBox):
             "If checked, create a new frames folder if one exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
         )
 
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.force_new)
+        layout = QFormLayout(self)
+        layout.addRow("Base name:", self.base_name)
+        layout.addRow(self.force_new)
 
     def apply_settings(self, exp: SpritesheetExporter):
         if not self.isChecked():
@@ -93,6 +95,7 @@ class FramesExport(QGroupBox):
             return
 
         exp.export_frame_sequence = True
+        exp.base_name = self.base_name.text()
         exp.force_new = self.force_new.isChecked()
 
 
