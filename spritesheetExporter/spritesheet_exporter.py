@@ -126,13 +126,13 @@ class SpritesheetExporter:
         if frames_dir.exists():
             if self.force_new:
                 export_num = 0
-                frames_dir = self.export_path.with_suffix(
+                frames_dir = self.export_path.with_name(
                     self.export_path.stem + "_sprites0"
                 )
 
                 while frames_dir.exists():
                     export_num += 1
-                    frames_dir = self.export_path.with_suffix(
+                    frames_dir = self.export_path.with_name(
                         "".join([self.export_path.stem, "_sprites", str(export_num)])
                     )
 
