@@ -33,7 +33,7 @@ from .spritesheet_exporter import (
 
 
 class CommonSettings(QFormLayout):
-    name = QLineEdit()
+    name = QLineEdit("spritesheet.png")
     directory = QLineEdit()
     change_dir = QPushButton(KI.icon("folder"), None)
     reset_dir = QPushButton(KI.icon("view-refresh"), None)
@@ -253,7 +253,6 @@ class UISpritesheetExporter:
         self.dialog.setWindowModality(Qt.NonModal)
         self.dialog.setMinimumSize(500, 100)
 
-        self.common_settings.name.setText(self.exp.export_path.name)
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 

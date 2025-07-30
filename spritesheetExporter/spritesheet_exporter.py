@@ -18,22 +18,22 @@ DEFAULT_SPACE = 0
 
 
 class SpritesheetExporter:
-    export_path = Path.home().joinpath("spritesheet.png")
-    unique_frames = True
+    export_path: Path
+    unique_frames: bool
 
-    horizontal = True
-    size = DEFAULT_SPACE
-    start = DEFAULT_TIME
-    end = DEFAULT_TIME
+    horizontal: bool
+    size: int
+    start: int
+    end: int
 
-    export_frame_sequence = False
-    custom_frames_dir: Optional[Path] = None
-    base_name = "sprite"
-    force_new = False
+    export_frame_sequence: bool
+    custom_frames_dir: Optional[Path]
+    base_name: str
+    force_new: bool
 
-    step = 1
-    layers_as_animation = False
-    write_texture_atlas = False
+    step: int
+    layers_as_animation: bool
+    write_texture_atlas: bool
     show_export_dialog = False
 
     def _check_last_keyframe(self, layer: Node, time_range: Iterable[int]):
