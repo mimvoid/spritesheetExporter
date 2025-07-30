@@ -211,17 +211,20 @@ class SpritesheetExporter:
                 index = (int(name) - self.start) // self.step
 
             if self.horizontal:
-                layer.move((index % self.size) * width, (index // self.size) * height)
+                x_pos = (index % self.size) * width
+                y_pos = (index // self.size) * height
             else:
-                layer.move((index // self.size) * width, (index % self.size) * height)
+                x_pos = (index // self.size) * width
+                y_pos = (index % self.size) * height
+
+            layer.move(x_pos, y_pos)
 
             if texture_atlas is not None:
-                dest.waitForDone()
                 texture_atlas["frames"].append(
                     {
                         "frame": {
-                            "x": layer.position().x(),
-                            "y": layer.position().y(),
+                            "x": x_pos,
+                            "y": y_pos,
                             "w": width,
                             "h": height,
                         },
