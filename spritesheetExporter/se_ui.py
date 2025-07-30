@@ -74,6 +74,12 @@ class FramesExport(QGroupBox):
     """
 
     base_name = QLineEdit("sprite")
+
+    custom_dir = QCheckBox("Custom directory")
+    directory = QLineEdit()
+    change_dir = QPushButton(KI.icon("folder"), None)
+    reset_dir = QPushButton(KI.icon("view-refresh"), None)
+
     force_new = QCheckBox("Force new folder")
 
     def __init__(self):
@@ -81,13 +87,34 @@ class FramesExport(QGroupBox):
         self.setCheckable(True)
         self.setChecked(False)
 
+        self.custom_dir.setToolTip("Manually define the images' export directory")
+        self.toggle_custom_dir(Qt.Unchecked)
+        self.custom_dir.stateChanged.connect(self.toggle_custom_dir)
+
+        self.directory.setToolTip("The directory the images will be exported to")
+        self.change_dir.setToolTip("Open a file picker to choose the images directory")
+        self.reset_dir.setToolTip("Reset images directory based on the export path")
+
         self.force_new.setToolTip(
             "If checked, create a new frames folder if one exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
         )
 
+        dir_layout = QHBoxLayout()
+        dir_layout.addWidget(self.custom_dir)
+        dir_layout.addWidget(self.directory)
+        dir_layout.addWidget(self.change_dir)
+        dir_layout.addWidget(self.reset_dir)
+
         layout = QFormLayout(self)
         layout.addRow("Base name:", self.base_name)
+        layout.addRow(dir_layout)
         layout.addRow(self.force_new)
+
+    def toggle_custom_dir(self, state: int):
+        enabled = state == Qt.Checked
+        self.directory.setEnabled(enabled)
+        self.change_dir.setEnabled(enabled)
+        self.reset_dir.setEnabled(enabled)
 
     def apply_settings(self, exp: SpritesheetExporter):
         if not self.isChecked():
@@ -96,6 +123,12 @@ class FramesExport(QGroupBox):
 
         exp.export_frame_sequence = True
         exp.base_name = self.base_name.text()
+
+        if self.custom_dir.isChecked():
+            exp.custom_frames_dir = Path(self.directory.text())
+        else:
+            exp.custom_frames_dir = None
+
         exp.force_new = self.force_new.isChecked()
 
 
@@ -220,6 +253,9 @@ class UISpritesheetExporter:
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
+        self.frames.change_dir.clicked.connect(self.change_frames_dir)
+        self.frames.reset_dir.clicked.connect(self.reset_frames_dir)
+
         self.layers_as_animation.setToolTip(
             "Whether to treat each layer as a frame instead of using the animation timeline"
         )
@@ -248,6 +284,8 @@ class UISpritesheetExporter:
     def show_dialog(self):
         if self.common_settings.directory.text() == "":
             self.reset_export_dir()
+        if self.frames.directory.text() == "":
+            self.reset_frames_dir()
 
         self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
         self.dialog.setSizeGripEnabled(True)
@@ -285,6 +323,19 @@ class UISpritesheetExporter:
         path = UISpritesheetExporter.current_directory()
         if path:
             self.common_settings.directory.setText(str(path))
+
+    def change_frames_dir(self):
+        path = UISpritesheetExporter.pick_directory_dialog(self.frames.directory.text())
+        if path != "":
+            self.frames.directory.setText(path)
+
+    def reset_frames_dir(self):
+        path = UISpritesheetExporter.current_directory()
+        if path:
+            frames_dir = Path(
+                path, self.common_settings.name.text().split(".")[0] + "_sprites"
+            )
+            self.frames.directory.setText(str(frames_dir))
 
     def confirmButton(self):
         # if you double click it shouldn't interrupt

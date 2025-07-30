@@ -7,6 +7,7 @@ from builtins import Application
 from PyQt5.QtCore import QRect
 
 from collections.abc import Iterable
+from typing import Optional
 from math import sqrt, ceil
 import json
 from pathlib import Path
@@ -25,6 +26,7 @@ class SpritesheetExporter:
     end = DEFAULT_TIME
 
     export_frame_sequence = False
+    custom_frames_dir: Optional[Path] = None
     base_name = "sprite"
     force_new = False
 
@@ -122,26 +124,27 @@ class SpritesheetExporter:
                 self.start = 0
 
     def _make_frames_dir(self):
-        frames_dir = self.export_path.with_name(self.export_path.stem + "_sprites")
+        if self.custom_frames_dir is None:
+            name = self.export_path.stem + "_sprites"
+            dir = self.export_path.with_name(name)
+        else:
+            name = self.custom_frames_dir.name
+            dir = self.custom_frames_dir
 
-        if frames_dir.exists():
+        if dir.exists():
             if self.force_new:
                 export_num = 0
-                frames_dir = self.export_path.with_name(
-                    self.export_path.stem + "_sprites0"
-                )
+                dir = dir.with_name(name + "0")
 
-                while frames_dir.exists():
+                while dir.exists():
                     export_num += 1
-                    frames_dir = self.export_path.with_name(
-                        "".join([self.export_path.stem, "_sprites", str(export_num)])
-                    )
+                    dir = dir.with_name(name + str(export_num))
 
-                frames_dir.mkdir()
+                dir.mkdir()
         else:
-            frames_dir.mkdir()
+            dir.mkdir()
 
-        return frames_dir
+        return dir
 
     def _copy_frames(self, src: Document, dest: Document) -> int:
         """
