@@ -37,8 +37,6 @@ class CommonSettings(QFormLayout):
     directory = QLineEdit()
     change_dir = QPushButton(KI.icon("folder"), None)
     reset_dir = QPushButton(KI.icon("view-refresh"), None)
-
-    export_frames = QCheckBox("Export individual frames")
     write_texture_atlas = QCheckBox("Write JSON texture atlas")
 
     def __init__(self):
@@ -52,7 +50,6 @@ class CommonSettings(QFormLayout):
             "Reset export directory to the current document's directory"
         )
 
-        self.export_frames.setToolTip("Export each sprite frame into its own file")
         self.write_texture_atlas.setToolTip(
             "Write a JSON texture atlas that can be used in game frameworks (e.g. Phaser 3)"
         )
@@ -64,13 +61,31 @@ class CommonSettings(QFormLayout):
 
         self.addRow("Export name:", self.name)
         self.addRow("Export directory:", dir_layout)
-        self.addRow(self.export_frames)
         self.addRow(self.write_texture_atlas)
 
     def apply_settings(self, exp: SpritesheetExporter):
         exp.export_path = Path(self.directory.text(), self.name.text())
-        exp.export_individual_frames = self.export_frames.isChecked()
         exp.write_texture_atlas = self.write_texture_atlas.isChecked()
+
+
+class FramesExport(QGroupBox):
+    """
+    Controls configuration for exporting individual frames as an image sequence.
+    """
+
+    force_new = QCheckBox("Force new folder")
+
+    def __init__(self):
+        super().__init__("Export image sequence")
+        self.setCheckable(True)
+        self.setChecked(False)
+
+        self.force_new.setToolTip(
+            "If checked, create a new frames folder if one exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
+        )
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.force_new)
 
 
 class SpritePlacement(QFormLayout):
@@ -176,12 +191,12 @@ class UISpritesheetExporter:
     dialog = QDialog()  # the main window
 
     common_settings = CommonSettings()
+    frames = FramesExport()
 
     # Extra settings group
     layers_as_animation = QCheckBox("Use layers as animation frames")
     placement = SpritePlacement()
     spin_boxes = SpinBoxes()
-    force_new = QCheckBox("Force new folder")
 
     dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
@@ -197,9 +212,6 @@ class UISpritesheetExporter:
         self.layers_as_animation.setToolTip(
             "Whether to treat each layer as a frame instead of using the animation timeline"
         )
-        self.force_new.setToolTip(
-            "If checked, create a new individual frames folder if one already exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
-        )
 
         self.dialog_buttons.accepted.connect(self.confirmButton)
         self.dialog_buttons.rejected.connect(self.dialog.close)
@@ -209,19 +221,16 @@ class UISpritesheetExporter:
         extra_settings.setCheckable(True)
         extra_settings.setChecked(False)
 
-        extras = QVBoxLayout()
-        extra_settings.setLayout(extras)
-
+        extras = QVBoxLayout(extra_settings)
         extras.addWidget(self.layers_as_animation)
         extras.addSpacing(10)
         extras.addLayout(self.placement)
         extras.addSpacing(10)
         extras.addLayout(self.spin_boxes)
-        extras.addSpacing(10)
-        extras.addWidget(self.force_new)
 
         root_layout = QVBoxLayout(self.dialog)  # the box holding everything
         root_layout.addLayout(self.common_settings)
+        root_layout.addWidget(self.frames)
         root_layout.addWidget(extra_settings)
         root_layout.addWidget(self.dialog_buttons)
 
@@ -269,8 +278,8 @@ class UISpritesheetExporter:
         self.placement.apply_settings(self.exp)
         self.spin_boxes.apply_settings(self.exp)
 
+        self.exp.force_new = self.frames.force_new.isChecked()
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
-        self.exp.force_new = self.force_new.isChecked()
 
         self.exp.export()
         self.dialog.hide()
