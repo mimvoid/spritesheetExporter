@@ -87,6 +87,14 @@ class FramesExport(QGroupBox):
         layout = QVBoxLayout(self)
         layout.addWidget(self.force_new)
 
+    def apply_settings(self, exp: SpritesheetExporter):
+        if not self.isChecked():
+            exp.export_frame_sequence = False
+            return
+
+        exp.export_frame_sequence = True
+        exp.force_new = self.force_new.isChecked()
+
 
 class SpritePlacement(QFormLayout):
     """
@@ -251,18 +259,24 @@ class UISpritesheetExporter:
             return None
         return Path(doc.fileName()).parent
 
-    def change_export_dir(self):
+    @staticmethod
+    def pick_directory_dialog(directory: str) -> str:
         file_dialog = QFileDialog()
         file_dialog.setWindowTitle(i18n("Choose Export Directory"))
         file_dialog.setSizeGripEnabled(True)
 
         # QFileDialog already seems to handle invalid directories fine
-        file_dialog.setDirectory(self.common_settings.directory.text())
+        file_dialog.setDirectory(directory)
 
-        # we grab the output path on directory changed
-        path = file_dialog.getExistingDirectory()
+        return file_dialog.getExistingDirectory()
+
+    def change_export_dir(self):
+        # Grab the output path on directory changed
+        path = UISpritesheetExporter.pick_directory_dialog(
+            self.common_settings.directory.text()
+        )
         if path != "":
-            self.common_settings.directory.setText(str(path))
+            self.common_settings.directory.setText(path)
 
     def reset_export_dir(self):
         path = UISpritesheetExporter.current_directory()
@@ -275,10 +289,9 @@ class UISpritesheetExporter:
         self.dialog.setDisabled(True)
 
         self.common_settings.apply_settings(self.exp)
+        self.frames.apply_settings(self.exp)
         self.placement.apply_settings(self.exp)
         self.spin_boxes.apply_settings(self.exp)
-
-        self.exp.force_new = self.frames.force_new.isChecked()
         self.exp.layers_as_animation = self.layers_as_animation.isChecked()
 
         self.exp.export()

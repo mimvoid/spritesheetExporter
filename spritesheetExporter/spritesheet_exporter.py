@@ -24,8 +24,9 @@ class SpritesheetExporter:
     start = DEFAULT_TIME
     end = DEFAULT_TIME
 
-    export_individual_frames = True
+    export_frame_sequence = False
     force_new = False
+
     step = 1
     layers_as_animation = False
     write_texture_atlas = False
@@ -189,7 +190,7 @@ class SpritesheetExporter:
         width = src.width()
         height = src.height()
 
-        frames_dir = self._make_frames_dir() if self.export_individual_frames else None
+        frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
 
         for layer in dest.rootNode().childNodes():
