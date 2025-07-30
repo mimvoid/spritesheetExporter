@@ -4,7 +4,7 @@ The backend that handles exporting spritesheet.
 
 from krita import Krita, Document, Node, InfoObject
 from builtins import Application
-from PyQt5.QtCore import QRect
+from PyQt5.QtCore import QRect, QByteArray
 
 from collections.abc import Iterable
 from typing import Optional
@@ -19,6 +19,7 @@ DEFAULT_SPACE = 0
 
 class SpritesheetExporter:
     export_path = Path.home().joinpath("spritesheet.png")
+    unique_frames = True
 
     horizontal = True
     size = DEFAULT_SPACE
@@ -146,18 +147,19 @@ class SpritesheetExporter:
 
         return dir
 
-    def _copy_frames(self, src: Document, dest: Document) -> int:
+    def _copy_frames(self, src: Document, dest: Document):
         """
         Copies frames from the source document to the destination.
 
         @param src The source document
         @param dest The destination document
-        @returns The number of frames copied
         """
 
         root = dest.rootNode()
         width = src.width()
         height = src.height()
+
+        pixel_set: Optional[set[QByteArray]] = set() if self.unique_frames else None
 
         if self.layers_as_animation:
             paint_layers = src.rootNode().findChildNodes("", True, False, "paintlayer")
@@ -165,30 +167,38 @@ class SpritesheetExporter:
 
             # export each visible layer
             for i, layer in enumerate(visible_layers):
+                if pixel_set is not None:
+                    pixel_data = layer.pixelData(0, 0, width, height)
+                    if pixel_data in pixel_set:
+                        continue  # Got a non-unique frame
+                    pixel_set.add(pixel_data)
+
                 clone_layer = dest.createCloneLayer(str(i), layer)
                 root.addChildNode(clone_layer, None)
+        else:
+            if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
+                self._set_frame_times(src)
 
-            return len(visible_layers)
+            initial_time = src.currentTime()
+            frame_range = range(self.start, self.end + 1, self.step)
 
-        if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
-            self._set_frame_times(src)
+            for i in frame_range:
+                src.setCurrentTime(i)
 
-        initial_time = src.currentTime()
-        frame_range = range(self.start, self.end + 1, self.step)
+                # Ensure the time has been set before copying the pixel data
+                src.waitForDone()
+                pixel_data = src.pixelData(0, 0, width, height)
 
-        for i in frame_range:
-            src.setCurrentTime(i)
-            layer = dest.createNode(str(i), "paintlayer")
-            root.addChildNode(layer, None)
+                if pixel_set is not None:
+                    if pixel_data in pixel_set:
+                        continue  # Got a non-unique frame
+                    pixel_set.add(pixel_data)
 
-            # Ensure the time has been set before copying the pixel data
-            src.waitForDone()
-            pixel_data = src.pixelData(0, 0, width, height)
-            layer.setPixelData(pixel_data, 0, 0, width, height)
+                layer = dest.createNode(str(i), "paintlayer")
+                layer.setPixelData(pixel_data, 0, 0, width, height)
+                root.addChildNode(layer, None)
 
-        src.setCurrentTime(initial_time)  # reset time
-
-        return len(frame_range)
+            src.setCurrentTime(initial_time)  # reset time
 
     def _process_frames(self, src: Document, dest: Document):
         width = src.width()
@@ -197,12 +207,10 @@ class SpritesheetExporter:
         frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
 
-        for layer in dest.rootNode().childNodes():
-            name = layer.name()
-
+        for i, layer in enumerate(dest.rootNode().childNodes()):
             if frames_dir is not None:
                 file_name = "".join(
-                    [self.base_name, name.zfill(3), self.export_path.suffix]
+                    [self.base_name, str(i).zfill(3), self.export_path.suffix]
                 )
                 layer.save(
                     str(frames_dir.joinpath(file_name)),
@@ -212,17 +220,13 @@ class SpritesheetExporter:
                     QRect(0, 0, width, height),
                 )
 
-            if self.layers_as_animation:
-                index = int(name)
-            else:
-                index = (int(name) - self.start) // self.step
-
+            # Layers are ordered by when they were added, so using `i` is fine
             if self.horizontal:
-                x_pos = (index % self.size) * width
-                y_pos = (index // self.size) * height
+                x_pos = (i % self.size) * width
+                y_pos = (i // self.size) * height
             else:
-                x_pos = (index // self.size) * width
-                y_pos = (index % self.size) * height
+                x_pos = (i // self.size) * width
+                y_pos = (i % self.size) * height
 
             layer.move(x_pos, y_pos)
 
@@ -275,7 +279,10 @@ class SpritesheetExporter:
         )
 
         sheet.setFileName(str(self.export_path))
-        num_frames = self._copy_frames(doc, sheet)
+        sheet.rootNode().setChildNodes([])  # Remove any default layers
+
+        self._copy_frames(doc, sheet)
+        num_frames = len(sheet.rootNode().childNodes())
 
         if self.size == DEFAULT_SPACE:
             # Pack the sprites as densely as possible with a square fit
@@ -300,9 +307,6 @@ class SpritesheetExporter:
                 + f"num of frames: {num_frames}\n"
                 + f"new doc width: {sheet.width()}"
             )
-
-        # Remove the default Background layer
-        sheet.rootNode().childNodes()[0].remove()
 
         # Position frames, and optionally write JSON or export all frames
         self._process_frames(doc, sheet)

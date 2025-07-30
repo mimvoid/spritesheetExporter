@@ -37,6 +37,8 @@ class CommonSettings(QFormLayout):
     directory = QLineEdit()
     change_dir = QPushButton(KI.icon("folder"), None)
     reset_dir = QPushButton(KI.icon("view-refresh"), None)
+
+    unique_frames = QCheckBox("Only unique frames")
     write_texture_atlas = QCheckBox("Write JSON texture atlas")
 
     def __init__(self):
@@ -61,10 +63,12 @@ class CommonSettings(QFormLayout):
 
         self.addRow("Export name:", self.name)
         self.addRow("Export directory:", dir_layout)
+        self.addRow(self.unique_frames)
         self.addRow(self.write_texture_atlas)
 
     def apply_settings(self, exp: SpritesheetExporter):
         exp.export_path = Path(self.directory.text(), self.name.text())
+        exp.unique_frames = self.unique_frames.isChecked()
         exp.write_texture_atlas = self.write_texture_atlas.isChecked()
 
 
