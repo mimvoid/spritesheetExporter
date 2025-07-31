@@ -3,7 +3,6 @@ The backend that handles exporting spritesheet.
 """
 
 from krita import Krita, Document, Node, InfoObject
-from builtins import Application
 from PyQt5.QtCore import QRect, QByteArray
 
 from collections.abc import Iterable
@@ -11,6 +10,8 @@ from typing import Optional
 from math import sqrt, ceil
 import json
 from pathlib import Path
+
+from .utils import KritaVersion
 
 KI = Krita.instance()
 DEFAULT_TIME = -1
@@ -35,6 +36,15 @@ class SpritesheetExporter:
     layers_as_animation: bool
     write_texture_atlas: bool
     show_export_dialog = False
+
+    _version: Optional[KritaVersion] = None
+
+    @property
+    def version(self) -> KritaVersion:
+        """Lazy loads an analysis of available Krita API functions"""
+        if self._version is None:
+            self._version = KritaVersion()
+        return self._version
 
     def _check_last_keyframe(self, layer: Node, time_range: Iterable[int]):
         """
@@ -76,12 +86,7 @@ class SpritesheetExporter:
         if not def_start and not def_end:
             return
 
-        # only from version 4.2.x on can we use hasKeyframeAtTime;
-        # in earlier versions we just export from 0 to 100 as default
-        major, minor, _ = Application.version().split(".")
-        is_new_version = int(major) > 4 or (int(major) == 4 and int(minor) >= 2)
-
-        if is_new_version:
+        if self.version.can_analyze_time:
             start_time = doc.fullClipRangeStartTime() if def_start else self.start
             end_time = doc.fullClipRangeEndTime() if def_end else self.end
 
@@ -91,7 +96,7 @@ class SpritesheetExporter:
                 self.end = start_time
                 return
 
-            layers = doc.rootNode().findChildNodes("", True)
+            layers = self.version.recurse_children(doc.rootNode())
             filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
             if not filtered_layers:
@@ -162,7 +167,7 @@ class SpritesheetExporter:
         pixel_set: Optional[set[QByteArray]] = set() if self.unique_frames else None
 
         if self.layers_as_animation:
-            paint_layers = src.rootNode().findChildNodes("", True, False, "paintlayer")
+            paint_layers = self.version.recurse_children(src.rootNode(), "paintlayer")
             visible_layers = [i for i in paint_layers if i.visible()]
 
             # export each visible layer
@@ -320,11 +325,7 @@ class SpritesheetExporter:
             sheet.setBatchmode(True)
         sheet.save()
 
-        major, minor, patch = [int(i) for i in Application.version().split(".")]
-        can_set_modify = major > 5 or (
-            major == 5 and (minor > 1 or (minor == 1 and patch >= 2))
-        )
-        if can_set_modify:
+        if self.version.can_set_modified:
             doc.setModified(False)
             if debug:
                 print("Removing modified flag from original document")
