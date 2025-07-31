@@ -65,10 +65,10 @@ class CommonSettings(QFormLayout):
         self.addRow(self.unique_frames)
         self.addRow(self.write_texture_atlas)
 
-    def apply_settings(self, exp: SpritesheetExporter):
-        exp.export_path = Path(self.directory.text(), self.name.text())
-        exp.unique_frames = self.unique_frames.isChecked()
-        exp.write_texture_atlas = self.write_texture_atlas.isChecked()
+    def apply_settings(self, exporter: SpritesheetExporter):
+        exporter.export_path = Path(self.directory.text(), self.name.text())
+        exporter.unique_frames = self.unique_frames.isChecked()
+        exporter.write_texture_atlas = self.write_texture_atlas.isChecked()
 
 
 class FramesExport(QGroupBox):
@@ -119,20 +119,20 @@ class FramesExport(QGroupBox):
         self.change_dir.setEnabled(enabled)
         self.reset_dir.setEnabled(enabled)
 
-    def apply_settings(self, exp: SpritesheetExporter):
+    def apply_settings(self, exporter: SpritesheetExporter):
         if not self.isChecked():
-            exp.export_frame_sequence = False
+            exporter.export_frame_sequence = False
             return
 
-        exp.export_frame_sequence = True
-        exp.base_name = self.base_name.text()
+        exporter.export_frame_sequence = True
+        exporter.base_name = self.base_name.text()
 
         if self.custom_dir.isChecked():
-            exp.custom_frames_dir = Path(self.directory.text())
+            exporter.custom_frames_dir = Path(self.directory.text())
         else:
-            exp.custom_frames_dir = None
+            exporter.custom_frames_dir = None
 
-        exp.force_new = self.force_new.isChecked()
+        exporter.force_new = self.force_new.isChecked()
 
 
 class SpritePlacement(QFormLayout):
@@ -190,13 +190,13 @@ class SpritePlacement(QFormLayout):
         self.columns.setEnabled(not checked)
         self.rows.setEnabled(checked)
 
-    def apply_settings(self, exp: SpritesheetExporter):
+    def apply_settings(self, exporter: SpritesheetExporter):
         if self.h_dir.isChecked():
-            exp.horizontal = True
-            exp.size = self.columns.value()
+            exporter.horizontal = True
+            exporter.size = self.columns.value()
         else:
-            exp.horizontal = False
-            exp.size = self.rows.value()
+            exporter.horizontal = False
+            exporter.size = self.rows.value()
 
 
 class SpinBoxes(QFormLayout):
@@ -224,14 +224,14 @@ class SpinBoxes(QFormLayout):
         self.addRow("End:", self.end)
         self.addRow("Step:", self.step)
 
-    def apply_settings(self, exp: SpritesheetExporter):
-        exp.start = self.start.value()
-        exp.end = self.end.value()
-        exp.step = self.step.value()
+    def apply_settings(self, exporter: SpritesheetExporter):
+        exporter.start = self.start.value()
+        exporter.end = self.end.value()
+        exporter.step = self.step.value()
 
 
 class UISpritesheetExporter:
-    exp = SpritesheetExporter()
+    exporter = SpritesheetExporter()
     dialog = QDialog()  # the main window
 
     common_settings = CommonSettings()
@@ -260,7 +260,7 @@ class UISpritesheetExporter:
             "Whether to treat each layer as a frame instead of using the animation timeline"
         )
 
-        self.dialog_buttons.accepted.connect(self.confirmButton)
+        self.dialog_buttons.accepted.connect(self.confirm_button)
         self.dialog_buttons.rejected.connect(self.dialog.close)
 
         # Setup layouts
@@ -335,15 +335,15 @@ class UISpritesheetExporter:
             )
             self.frames.directory.setText(str(frames_dir))
 
-    def confirmButton(self):
+    def confirm_button(self):
         # Block any function calls on subsequent clicks
         self.dialog.setDisabled(True)
 
-        self.common_settings.apply_settings(self.exp)
-        self.frames.apply_settings(self.exp)
-        self.placement.apply_settings(self.exp)
-        self.spin_boxes.apply_settings(self.exp)
-        self.exp.layers_as_animation = self.layers_as_animation.isChecked()
+        self.common_settings.apply_settings(self.exporter)
+        self.frames.apply_settings(self.exporter)
+        self.placement.apply_settings(self.exporter)
+        self.spin_boxes.apply_settings(self.exporter)
+        self.exporter.layers_as_animation = self.layers_as_animation.isChecked()
 
-        self.exp.export()
+        self.exporter.export()
         self.dialog.hide()

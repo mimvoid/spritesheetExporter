@@ -31,12 +31,12 @@ class SpritesheetExporterExtension(Extension):
         # parameter 1 = the name Krita uses to identify the action
         # parameter 2 = this script's menu entry name
         # parameter 3 = location of menu entry
-        exportAction = window.createAction(
+        export_action = window.createAction(
             "pykrita_spritesheetExporter", "Export as Spritesheet", "tools/scripts"
         )
 
-        exportAction.setToolTip("Export animation in timeline as spritesheet")
-        exportAction.triggered.connect(self.ui.show_dialog)
+        export_action.setToolTip("Export animation in timeline as spritesheet")
+        export_action.triggered.connect(self.ui.show_dialog)
 
 
 Scripter.addExtension(SpritesheetExporterExtension(KI))

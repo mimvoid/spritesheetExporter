@@ -37,14 +37,14 @@ class SpritesheetExporter:
     write_texture_atlas: bool
     show_export_dialog = False
 
-    _version: Optional[KritaVersion] = None
+    _api_version: Optional[KritaVersion] = None
 
     @property
-    def version(self) -> KritaVersion:
+    def api_version(self) -> KritaVersion:
         """Lazy loads an analysis of available Krita API functions"""
-        if self._version is None:
-            self._version = KritaVersion()
-        return self._version
+        if self._api_version is None:
+            self._api_version = KritaVersion()
+        return self._api_version
 
     def _check_last_keyframe(self, layer: Node, times: Iterable[int]):
         """
@@ -90,7 +90,7 @@ class SpritesheetExporter:
         if not def_start and not def_end:
             return
 
-        if self.version.can_analyze_time:
+        if self.api_version.can_analyze_time:
             start_time = doc.fullClipRangeStartTime() if def_start else self.start
             end_time = doc.fullClipRangeEndTime() if def_end else self.end
 
@@ -100,7 +100,7 @@ class SpritesheetExporter:
                 self.end = start_time
                 return
 
-            layers = self.version.recurse_children(doc.rootNode())
+            layers = self.api_version.recurse_children(doc.rootNode())
             filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
             if not filtered_layers:
@@ -175,7 +175,9 @@ class SpritesheetExporter:
         pixel_set: Optional[set[QByteArray]] = set() if self.unique_frames else None
 
         if self.layers_as_animation:
-            paint_layers = self.version.recurse_children(src.rootNode(), "paintlayer")
+            paint_layers = self.api_version.recurse_children(
+                src.rootNode(), "paintlayer"
+            )
             visible_layers = [i for i in paint_layers if i.visible()]
 
             # Export each visible layer
@@ -341,7 +343,7 @@ class SpritesheetExporter:
             sheet.setBatchmode(True)
         sheet.save()
 
-        if self.version.can_set_modified:
+        if self.api_version.can_set_modified:
             doc.setModified(False)
             if debug:
                 print("Removing modified flag from original document")
