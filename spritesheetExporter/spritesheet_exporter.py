@@ -207,7 +207,7 @@ class SpritesheetExporter:
         frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
 
-        for i, layer in enumerate(dest.rootNode().childNodes()):
+        for i, layer in enumerate(dest.topLevelNodes()):
             if frames_dir is not None:
                 file_name = "".join(
                     [self.base_name, str(i).zfill(3), self.export_path.suffix]
@@ -259,8 +259,7 @@ class SpritesheetExporter:
         if debug:
             print("\nExport spritesheet start.")
 
-        # getting current document info
-        # so we can copy it over to the new document
+        # Current document info to use for the new document
         width = doc.width()
         height = doc.height()
 
@@ -282,7 +281,7 @@ class SpritesheetExporter:
         sheet.rootNode().setChildNodes([])  # Remove any default layers
 
         self._copy_frames(doc, sheet)
-        num_frames = len(sheet.rootNode().childNodes())
+        num_frames = len(sheet.topLevelNodes())
 
         if self.size == DEFAULT_SPACE:
             # Pack the sprites as densely as possible with a square fit

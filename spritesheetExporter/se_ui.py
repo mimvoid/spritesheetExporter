@@ -21,8 +21,7 @@ from PyQt5.QtWidgets import (
 )
 from builtins import i18n
 
-# we want paths to work whether it's windows or unix
-from pathlib import Path
+from pathlib import Path  # Operating system-independent path operations
 from typing import Optional
 from .spritesheet_exporter import (
     SpritesheetExporter,
@@ -145,8 +144,8 @@ class SpritePlacement(QFormLayout):
     h_dir = QRadioButton("Horizontal")
     v_dir = QRadioButton("Vertical")
 
-    columns = QSpinBox(minimum=DEFAULT_SPACE)
-    rows = QSpinBox(minimum=DEFAULT_SPACE)
+    columns = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
+    rows = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
 
     def __init__(self):
         super().__init__()
@@ -157,12 +156,10 @@ class SpritePlacement(QFormLayout):
         self.h_dir.setToolTip("Order the sprites horizontally")
         self.v_dir.setToolTip("Order the sprites vertically")
 
-        self.columns.setValue(DEFAULT_SPACE)
         self.columns.setSpecialValueText("Auto")
         self.columns.setToolTip("Number of columns in the spritesheet")
 
         self.rows.setEnabled(False)
-        self.rows.setValue(DEFAULT_SPACE)
         self.rows.setSpecialValueText("Auto")
         self.rows.setToolTip("Number of rows in the spritesheet")
 
@@ -205,14 +202,13 @@ class SpritePlacement(QFormLayout):
 class SpinBoxes(QFormLayout):
     start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
     end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
-    step = QSpinBox(minimum=1)
+    step = QSpinBox(value=1, minimum=1)
 
     def __init__(self):
         super().__init__()
 
         self.start.setValue(DEFAULT_TIME)
         self.end.setValue(DEFAULT_TIME)
-        self.step.setValue(1)
 
         self.start.setSpecialValueText("Auto")
         self.end.setSpecialValueText("Auto")
@@ -249,9 +245,10 @@ class UISpritesheetExporter:
     dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     def __init__(self):
-        # the window is not modal and does not block input to other windows
-        self.dialog.setWindowModality(Qt.NonModal)
+        self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
+        self.dialog.setWindowModality(Qt.NonModal)  # Don't block input to other windows
         self.dialog.setMinimumSize(500, 100)
+        self.dialog.setSizeGripEnabled(True)
 
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
@@ -290,8 +287,6 @@ class UISpritesheetExporter:
         if self.frames.directory.text() == "":
             self.reset_frames_dir()
 
-        self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
-        self.dialog.setSizeGripEnabled(True)
         self.dialog.show()
         self.dialog.activateWindow()
         self.dialog.setDisabled(False)
@@ -341,8 +336,7 @@ class UISpritesheetExporter:
             self.frames.directory.setText(str(frames_dir))
 
     def confirmButton(self):
-        # if you double click it shouldn't interrupt
-        # the first run of the function with a new one
+        # Block any function calls on subsequent clicks
         self.dialog.setDisabled(True)
 
         self.common_settings.apply_settings(self.exp)
