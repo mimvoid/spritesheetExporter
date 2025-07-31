@@ -20,7 +20,7 @@ class SpritesheetExporterExtension(Extension):
         super().__init__(parent)
 
     def setup(self):
-        """Overrides the abstract method of `Extension.setup()`"""
+        """Implements the abstract method of Extension.setup()"""
         pass
 
     def createActions(self, window):

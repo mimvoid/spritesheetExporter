@@ -46,38 +46,42 @@ class SpritesheetExporter:
             self._version = KritaVersion()
         return self._version
 
-    def _check_last_keyframe(self, layer: Node, time_range: Iterable[int]):
+    def _check_last_keyframe(self, layer: Node, times: Iterable[int]):
         """
         Finds the time of the layer's last keyframe, and updates the upper time limit
         accordingly.
 
         @param layer A visible and animated layer
         @param doc The document to which the layer belongs to
+        @param times The frame times to check, sorted highest to lowest
         """
 
-        for time in time_range:
+        for time in times:
             if layer.hasKeyframeAtTime(time):
                 self.end = max(self.end, time)
                 return
 
-    def _check_first_keyframe(self, layer: Node, time_range: Iterable[int]):
+    def _check_first_keyframe(self, layer: Node, times: Iterable[int]):
         """
         Finds the time of the layer's first keyframe, and updates the lower time limit
         accordingly.
 
         @param layer A visible and animated layer
         @param doc The document to which the layer belongs to
+        @param times The frame times to check, sorted lowest to highest
         """
 
-        for time in time_range:
+        for time in times:
             if layer.hasKeyframeAtTime(time):
                 self.start = min(self.start, time)
                 return
 
-    # get actual animation duration
     def _set_frame_times(self, doc: Document):
         """
         Updates the lower and upper frame time limits if they are set to default values.
+        This only considers visible layers.
+
+        @param doc The source document
         """
 
         def_start = self.start == DEFAULT_TIME
@@ -130,12 +134,16 @@ class SpritesheetExporter:
                 self.start = 0
 
     def _make_frames_dir(self):
-        if self.custom_frames_dir is None:
-            name = self.export_path.stem + "_sprites"
-            dir = self.export_path.with_name(name)
-        else:
+        """
+        Creates the directory to export individual frames.
+        """
+
+        if self.custom_frames_dir is not None:
             name = self.custom_frames_dir.name
             dir = self.custom_frames_dir
+        else:
+            name = self.export_path.stem + "_sprites"
+            dir = self.export_path.with_name(name)
 
         if dir.exists():
             if self.force_new:
@@ -157,7 +165,7 @@ class SpritesheetExporter:
         Copies frames from the source document to the destination.
 
         @param src The source document
-        @param dest The destination document
+        @param dest The document to contain the exported spritesheet
         """
 
         root = dest.rootNode()
@@ -170,7 +178,7 @@ class SpritesheetExporter:
             paint_layers = self.version.recurse_children(src.rootNode(), "paintlayer")
             visible_layers = [i for i in paint_layers if i.visible()]
 
-            # export each visible layer
+            # Export each visible layer
             for i, layer in enumerate(visible_layers):
                 if pixel_set is not None:
                     pixel_data = layer.pixelData(0, 0, width, height)
@@ -187,6 +195,7 @@ class SpritesheetExporter:
             initial_time = src.currentTime()
             frame_range = range(self.start, self.end + 1, self.step)
 
+            # Export each frame
             for i in frame_range:
                 src.setCurrentTime(i)
 
@@ -206,6 +215,14 @@ class SpritesheetExporter:
             src.setCurrentTime(initial_time)  # reset time
 
     def _process_frames(self, src: Document, dest: Document):
+        """
+        Positions the sprites in the spritesheet. Optionally exports each frame
+        or writes a texture atlas with their positions.
+
+        @param src The source document
+        @param dest The document to contain the exported spritesheet
+        """
+
         width = src.width()
         height = src.height()
 
@@ -271,7 +288,7 @@ class SpritesheetExporter:
         if self.export_path.suffix == "":
             self.export_path = self.export_path.with_suffix(".png")
 
-        # creating a new document where we'll put our sprites
+        # Create a new document for the spritesheet
         sheet = KI.createDocument(
             width,
             height,
@@ -312,7 +329,6 @@ class SpritesheetExporter:
                 + f"new doc width: {sheet.width()}"
             )
 
-        # Position frames, and optionally write JSON or export all frames
         self._process_frames(doc, sheet)
 
         sheet.refreshProjection()  # Refresh canvas to show the layers

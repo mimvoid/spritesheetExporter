@@ -61,6 +61,10 @@ class KritaVersion:
         """
         A simple version of Node.findChildNodes() that works before version 4.2.0.
         Note that the custom pre-4.2.0 implementation is slower.
+
+        @param node The layer of the children to find recursively
+        @param type The layer type to filter by. If empty, gets layers of all types.
+        See Node.type() for available options.
         """
 
         if self.can_find_child_nodes:
