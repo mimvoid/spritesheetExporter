@@ -247,7 +247,7 @@ class UISpritesheetExporter:
     def __init__(self):
         self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
         self.dialog.setWindowModality(Qt.NonModal)  # Don't block input to other windows
-        self.dialog.setMinimumSize(500, 100)
+        self.dialog.setMinimumSize(425, 450)
         self.dialog.setSizeGripEnabled(True)
 
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
