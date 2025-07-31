@@ -281,13 +281,22 @@ class SpritesheetExporter:
             return
 
         if debug:
-            print("\nExport spritesheet start.")
+            print("spritesheetExporter: Export spritesheet start.")
 
         # Current document info to use for the new document
         width = doc.width()
         height = doc.height()
 
+        if debug:
+            print(
+                f"Source document name: {doc.name()}",
+                f"Source document size: {width}x{height}",
+                sep="\n",
+            )
+
         if self.export_path.suffix == "":
+            if debug:
+                print("No file extension detected for spritesheet, defaulting to .png")
             self.export_path = self.export_path.with_suffix(".png")
 
         # Create a new document for the spritesheet
@@ -303,6 +312,12 @@ class SpritesheetExporter:
 
         sheet.setFileName(str(self.export_path))
         sheet.rootNode().setChildNodes([])  # Remove any default layers
+
+        if debug:
+            if self.layers_as_animation:
+                print("Copying layers...")
+            else:
+                print("Copying frames...")
 
         self._copy_frames(doc, sheet)
         num_frames = len(sheet.topLevelNodes())
@@ -325,10 +340,12 @@ class SpritesheetExporter:
 
         if debug:
             print(
-                f"new doc name: {sheet.name()}\n"
-                + f"old doc width: {width}\n"
-                + f"num of frames: {num_frames}\n"
-                + f"new doc width: {sheet.width()}"
+                f"New document name: {sheet.name()}",
+                f"New document size: {sheet.width()}x{sheet.height()}",
+                f"Number of frames: {num_frames}",
+                f"Columns: {columns}",
+                f"Rows: {rows}",
+                sep="\n",
             )
 
         self._process_frames(doc, sheet)
@@ -337,16 +354,16 @@ class SpritesheetExporter:
         KI.activeWindow().addView(sheet)  # Show the canvas to the user
 
         if debug:
-            print(f"Saving spritesheet to {sheet.fileName()}")
+            print("Saving spritesheet to", sheet.fileName())
 
         if not self.show_export_dialog:
             sheet.setBatchmode(True)
         sheet.save()
 
         if self.api_version.can_set_modified:
-            doc.setModified(False)
             if debug:
                 print("Removing modified flag from original document")
+            doc.setModified(False)
 
         if debug:
-            print("All done!")
+            print("spritesheetExporter: All done!")
