@@ -90,48 +90,42 @@ class SpritesheetExporter:
         if not def_start and not def_end:
             return
 
-        if self.api_version.can_analyze_time:
-            start_time = doc.fullClipRangeStartTime() if def_start else self.start
-            end_time = doc.fullClipRangeEndTime() if def_end else self.end
+        start_time = doc.fullClipRangeStartTime() if def_start else self.start
+        end_time = doc.fullClipRangeEndTime() if def_end else self.end
 
-            if start_time == end_time:
-                # The result will just be a single frame, no need for more operations.
-                self.start = start_time
-                self.end = start_time
-                return
+        if start_time == end_time:
+            # The result will just be a single frame, no need for more operations.
+            self.start = start_time
+            self.end = start_time
+            return
 
-            layers = self.api_version.recurse_children(doc.rootNode())
-            filtered_layers = [i for i in layers if i.visible() and i.animated()]
+        layers = self.api_version.recurse_children(doc.rootNode())
+        filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
-            if not filtered_layers:
-                # There are no visible animated layers. In this case, it's fine
-                # to just take a single frame at the start
-                # TODO: Maybe suggest layers as animation
-                self.end = 0
-                self.start = 0
-                return
+        if not filtered_layers:
+            # There are no visible animated layers. In this case, it's fine
+            # to just take a single frame at the start
+            # TODO: Maybe suggest layers as animation
+            self.end = 0
+            self.start = 0
+            return
 
-            if start_time > end_time:
-                start_time, end_time = end_time, start_time  # Swap values
-                if self.step > 0:
-                    self.step *= -1  # Make the step negative
+        if start_time > end_time:
+            start_time, end_time = end_time, start_time  # Swap values
+            if self.step > 0:
+                self.step *= -1  # Make the step negative
 
-            if def_end:
-                self.end = start_time
-                time_range = range(end_time, start_time - 1, -1)
-                for layer in filtered_layers:
-                    self._check_last_keyframe(layer, time_range)
+        if def_end:
+            self.end = start_time
+            time_range = range(end_time, start_time - 1, -1)
+            for layer in filtered_layers:
+                self._check_last_keyframe(layer, time_range)
 
-            if def_start:
-                self.start = self.end
-                time_range = range(start_time, self.end + 1)
-                for layer in filtered_layers:
-                    self._check_first_keyframe(layer, time_range)
-        else:
-            if def_end:
-                self.end = 100
-            if def_start:
-                self.start = 0
+        if def_start:
+            self.start = self.end
+            time_range = range(start_time, self.end + 1)
+            for layer in filtered_layers:
+                self._check_first_keyframe(layer, time_range)
 
     def _make_frames_dir(self):
         """

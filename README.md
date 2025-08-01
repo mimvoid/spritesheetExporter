@@ -1,8 +1,11 @@
 # Krita Spritesheet Exporter
 
-krita plugin using the Krita python script manager; it works best using Krita 4.2.x or later. With
-earlier Krita 4.x versions, it will work but you won't get the automatic animation length detection; it
-gives an error and won't run at 3.x if I recall correctly.
+A Krita plugin to export animations as spritesheets.
+
+> [!NOTE]
+> This plugin can only support animation timelines on Krita version **4.2.0** or later,
+> as that was when the Python animation API was added. Alternatively, you may export
+> layers as animation frames.
 
 **Exports to a spritesheet** from the animation timeline (using all visible layers) (the spritesheet's
 number of rows and columns are user-defined; default is Best Fit (trying to form a square))

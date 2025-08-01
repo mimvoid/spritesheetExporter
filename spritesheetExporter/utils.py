@@ -38,22 +38,22 @@ def _filter_recurse_children(node: Node, type: str, result: list[Node]) -> list[
 
 
 class KritaVersion:
-    can_analyze_time: bool
+    has_animation_api: bool
     can_set_modified: bool
     can_find_child_nodes: bool
 
     def __init__(self):
         major, minor, patch = [int(i) for i in Application.version().split(".")[0:3]]
         if major > 5:
-            self.can_analyze_time = True
+            self.has_animation_api = True
             self.can_set_modified = True
             self.can_find_child_nodes = True
         elif major == 5:
-            self.can_analyze_time = True
+            self.has_animation_api = True
             self.can_set_modified = minor > 1 or (minor == 1 and patch >= 2)
             self.can_find_child_nodes = minor >= 2
         else:
-            self.can_analyze_time = major == 4 and minor >= 2
+            self.has_animation_api = major == 4 and minor >= 2
             self.can_set_modified = False
             self.can_find_child_nodes = False
 
