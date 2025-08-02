@@ -54,3 +54,9 @@ A Krita plugin to export animations as spritesheets.
 - You can now use it through `Tools > Scripts > Export as Spritesheet`!
 
 Check [Manual.html](./spritesheetExporter/Manual.html) for more information.
+
+## Special Thanks
+
+- [Falano](https://github.com/Falano) and
+  [kritaSpritesheetManager](https://github.com/Falano/kritaSpritesheetManager)
+  for making the wonderful plugin this fork is based on!
