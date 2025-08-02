@@ -68,7 +68,7 @@ class KritaVersion:
         """
 
         if self.can_find_child_nodes:
-            return node.findChildNodes("", True)
+            return node.findChildNodes("", True, False, type)
 
         if type != "":
             return _filter_recurse_children(node, type, [])
