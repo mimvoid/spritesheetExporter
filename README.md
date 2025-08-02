@@ -7,29 +7,44 @@ A Krita plugin to export animations as spritesheets.
 > as that was when the Python animation API was added. Alternatively, you may export
 > layers as animation frames.
 
-**Exports to a spritesheet** from the animation timeline (using all visible layers) (the spritesheet's
-number of rows and columns are user-defined; default is Best Fit (trying to form a square))
+## Features
 
-- **To import a spritesheet** to the animation timeline of a new layer, simply (with your spritesheet
-  open) go to `Image > Image Split` then (in a new file of the same dimensions as one frame), `File > Import Animation Frames`
-- **To merge spritesheet**, go to `File > Import Animation Frames` and then `Tools > Scripts > Export as
-Spritesheet`
+- Export only unique frames
+- Choose whether to place the sprites horizontally or vertically
+- Define the number of columns if placed horizontally, and rows if placed vertically
+  - By default, the sprites are fit into a square
+- Write a JSON texture atlas
+- Export individual frames/sprites as an image sequence
+- Define the first frame, last frame, and frame step
+
+### Tips and Tricks
+
+- **To import a spritesheet** to the animation timeline of a new layer:
+  - With the spritesheet open, go to `Image > Image Split`
+  - Then, in a new file of the same dimensions as one frame, use `File > Import Animation Frames`
+- **To merge a spritesheet**:
+  - Use `File > Import Animation Frames` to add new sprites
+  - Then use `Tools > Scripts > Export as Spritesheet` to export the old and new sprites
 
 ## Installation
 
-- **Download the script** using the green "clone or download" button on this page, then clicking
-  "download as zip"
-- **Import the plugin into Krita**, by either:
-  - Opening krita, going to `Tools > Scripts > Import Python Plugin`, then selecting the zip file you
-    downloaded, and clicking Ok into the next dialog box
-  - Extracting the .zip and putting both the `spritesheetExporter.desktop` file and the `spritesheetExporter`
-    subfolder into the `pykrita` folder in krita's resources folder (that you can find through `Settings >
-Manage Resources > Open Resources Folder`)
+- **Download the plugin** using the green "Code" button on this page, then click "Download ZIP"
+- **Import the plugin into Krita** using one of the following:
+  - Open Krita
+    - Go to `Tools > Scripts > Import Python Plugin`
+    - Select the downloaded ZIP file
+  - Extract the ZIP file
+    - Find `pykrita` in Krita's resources folder
+      - The resources location can be found in `Settings > Configure Krita...`, then
+        `General > Resources`
+      - Alternatively, you can open the resources folder through
+        `Settings > Manage Resources > Open Resources Folder`
+    - Move `spritesheetExporter.desktop` and the `spritesheetExporter` folder into `pykrita`
 - **Restart Krita** if it was open
-- **Activate the plugin** by going to `Settings > Configure Krita > Python Plugin Manager` and checking
-  `Spritesheet Exporter` (if Krita was open, you may need to restart it to see the script in the list, I'm
-  not sure)
+- **Activate the plugin**
+  - Go to `Settings > Configure Krita > Python Plugin Manager`
+  - Check `Spritesheet Exporter`
 - **Restart Krita**
-- you can now use it in `Tools > Scripts > Export as Spritesheet`
+- You can now use it through `Tools > Scripts > Export as Spritesheet`!
 
-Check the [Manual.html](./spritesheetExporter/Manual.html) page for more information.
+Check [Manual.html](./spritesheetExporter/Manual.html) for more information.
