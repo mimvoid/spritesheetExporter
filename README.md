@@ -2,6 +2,12 @@
 
 A Krita plugin to export animations as spritesheets.
 
+<img
+  src="./assets/mimvoid-spritesheet.png"
+  title="Art by mimvoid. An example spritesheet exported with Spritesheet Exporter."
+  width="600"
+/>
+
 > [!NOTE]
 > This plugin can only support animation timelines on Krita version **4.2.0** or later,
 > as that was when the Python animation API was added. Alternatively, you may export
