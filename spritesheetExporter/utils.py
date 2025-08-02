@@ -8,7 +8,7 @@ from builtins import Application
 
 def _recurse_children(node: Node, result: list[Node]) -> list[Node]:
     """
-    A simple implementation of Node.findChildNodes() for below version 4.2.0.
+    A simple implementation of Node.findChildNodes() for below version 5.2.0.
     """
 
     append = result.append  # Local variables can speed up Python execution
@@ -59,8 +59,8 @@ class KritaVersion:
 
     def recurse_children(self, node: Node, type="") -> list[Node]:
         """
-        A simple version of Node.findChildNodes() that works before version 4.2.0.
-        Note that the custom pre-4.2.0 implementation is slower.
+        A simple version of Node.findChildNodes() that works before version 5.2.0.
+        Note that the custom pre-5.2.0 implementation is slower.
 
         @param node The layer of the children to find recursively
         @param type The layer type to filter by. If empty, gets layers of all types.
