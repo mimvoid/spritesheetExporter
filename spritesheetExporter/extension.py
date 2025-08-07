@@ -5,7 +5,7 @@ Connects everything in the Spritesheet Exporter plugin to be accessed through Kr
 from krita import Extension
 from builtins import Scripter
 
-from .se_ui import UISpritesheetExporter
+from .ui import UISpritesheetExporter
 from .spritesheet_exporter import KI
 
 

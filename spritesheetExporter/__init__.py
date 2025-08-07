@@ -1,1 +1,1 @@
-from .se_extension import *
+from .extension import *
