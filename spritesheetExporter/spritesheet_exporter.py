@@ -118,14 +118,23 @@ class SpritesheetExporter:
         if def_end:
             self.end = start_time
             time_range = range(end_time, start_time - 1, -1)
+
             for layer in filtered_layers:
                 self._check_last_keyframe(layer, time_range)
+                if self.end >= end_time:
+                    # The end keyframe cannot be any later, so stop checking.
+                    # (The greater than condition shouldn't happen, but is here just in case)
+                    break
 
         if def_start:
             self.start = self.end
             time_range = range(start_time, self.end + 1)
+
             for layer in filtered_layers:
                 self._check_first_keyframe(layer, time_range)
+                if self.start <= start_time:
+                    # Similar to above, the start keyframe cannot be any earlier.
+                    break
 
     def _make_frames_dir(self):
         """
