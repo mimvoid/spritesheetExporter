@@ -22,6 +22,7 @@ A Krita plugin to export animations as spritesheets.
 - Write a JSON texture atlas
 - Export individual frames/sprites as an image sequence
 - Define the first frame, last frame, and frame step
+- Pad or clip sprites
 
 ### Tips and Tricks
 
