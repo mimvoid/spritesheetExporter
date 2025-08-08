@@ -27,6 +27,11 @@ class SpritesheetExporter:
     start: int
     end: int
 
+    pad_left: int
+    pad_top: int
+    pad_right: int
+    pad_bottom: int
+
     export_frame_sequence: bool
     custom_frames_dir: Optional[Path]
     base_name: str
@@ -172,8 +177,11 @@ class SpritesheetExporter:
         """
 
         root = dest.rootNode()
-        width = src.width()
-        height = src.height()
+
+        x = -self.pad_left
+        y = -self.pad_top
+        w = src.width() - x + self.pad_right
+        h = src.height() - y + self.pad_bottom
 
         pixel_set: Optional[set[QByteArray]] = set() if self.unique_frames else None
 
@@ -185,14 +193,16 @@ class SpritesheetExporter:
 
             # Export each visible layer
             for i, layer in enumerate(visible_layers):
+                pixel_data = layer.pixelData(x, y, w, h)
+
                 if pixel_set is not None:
-                    pixel_data = layer.pixelData(0, 0, width, height)
                     if pixel_data in pixel_set:
                         continue  # Got a non-unique frame
                     pixel_set.add(pixel_data)
 
-                clone_layer = dest.createCloneLayer(str(i), layer)
-                root.addChildNode(clone_layer, None)
+                new_layer = dest.createNode(str(i), "paintlayer")
+                new_layer.setPixelData(0, 0, w, h, pixel_data)
+                root.addChildNode(new_layer, None)
         else:
             if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
                 self._set_frame_times(src)
@@ -206,7 +216,7 @@ class SpritesheetExporter:
 
                 # Ensure the time has been set before copying the pixel data
                 src.waitForDone()
-                pixel_data = src.pixelData(0, 0, width, height)
+                pixel_data = src.pixelData(x, y, w, h)
 
                 if pixel_set is not None:
                     if pixel_data in pixel_set:
@@ -214,7 +224,7 @@ class SpritesheetExporter:
                     pixel_set.add(pixel_data)
 
                 layer = dest.createNode(str(i), "paintlayer")
-                layer.setPixelData(pixel_data, 0, 0, width, height)
+                layer.setPixelData(pixel_data, 0, 0, w, h)
                 root.addChildNode(layer, None)
 
             src.setCurrentTime(initial_time)  # reset time
@@ -228,8 +238,8 @@ class SpritesheetExporter:
         @param dest The document to contain the exported spritesheet
         """
 
-        width = src.width()
-        height = src.height()
+        width = src.width() + self.pad_left + self.pad_right
+        height = src.height() + self.pad_top + self.pad_bottom
 
         frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
         texture_atlas = {"frames": []} if self.write_texture_atlas else None
@@ -287,8 +297,8 @@ class SpritesheetExporter:
             print("spritesheetExporter: Export spritesheet start.")
 
         # Current document info to use for the new document
-        width = doc.width()
-        height = doc.height()
+        width = doc.width() + self.pad_left + self.pad_right
+        height = doc.height() + self.pad_top + self.pad_bottom
 
         if debug:
             print(

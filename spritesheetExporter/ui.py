@@ -230,24 +230,59 @@ class SpinBoxes(QFormLayout):
         exporter.step = self.step.value()
 
 
+class EdgePadding(QFormLayout):
+    """
+    Sets the padding (or clipping) of sprites.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.left = self._make_spin_box("left")
+        self.top = self._make_spin_box("top")
+        self.right = self._make_spin_box("right")
+        self.bottom = self._make_spin_box("bottom")
+
+        self.addRow("Padding left:", self.left)
+        self.addRow("Padding top:", self.top)
+        self.addRow("Padding right:", self.right)
+        self.addRow("Padding bottom:", self.bottom)
+
+    def apply_settings(self, exp: SpritesheetExporter) -> None:
+        exp.pad_left = self.left.value()
+        exp.pad_top = self.top.value()
+        exp.pad_right = self.right.value()
+        exp.pad_bottom = self.bottom.value()
+
+    @staticmethod
+    def _make_spin_box(edge: str) -> QSpinBox:
+        spin_box = QSpinBox(value=0, minimum=-99, maximum=99)
+        spin_box.setSuffix("px")
+        spin_box.setToolTip(
+            f"Pads the {edge} edge of each sprite, or clips it if negative"
+        )
+        return spin_box
+
+
 class UISpritesheetExporter:
     exporter = SpritesheetExporter()
     dialog = QDialog()  # the main window
 
     common_settings = CommonSettings()
     frames = FramesExport()
+    edges = EdgePadding()
 
     # Extra settings group
     layers_as_animation = QCheckBox("Use layers as animation frames")
     placement = SpritePlacement()
-    spin_boxes = SpinBoxes()
+    frame_times = SpinBoxes()
 
     dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     def __init__(self):
         self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
         self.dialog.setWindowModality(Qt.NonModal)  # Don't block input to other windows
-        self.dialog.setMinimumSize(425, 450)
+        self.dialog.setMinimumSize(425, 480)
         self.dialog.setSizeGripEnabled(True)
 
         self.common_settings.change_dir.clicked.connect(self.change_export_dir)
@@ -264,6 +299,10 @@ class UISpritesheetExporter:
         self.dialog_buttons.rejected.connect(self.dialog.close)
 
         # Setup layouts
+        spin_boxes = QHBoxLayout()
+        spin_boxes.addLayout(self.frame_times)
+        spin_boxes.addLayout(self.edges)
+
         extra_settings = QGroupBox("Extra Settings")
         extra_settings.setCheckable(True)
         extra_settings.setChecked(False)
@@ -273,7 +312,7 @@ class UISpritesheetExporter:
         extras.addSpacing(10)
         extras.addLayout(self.placement)
         extras.addSpacing(10)
-        extras.addLayout(self.spin_boxes)
+        extras.addLayout(spin_boxes)
 
         root_layout = QVBoxLayout(self.dialog)  # the box holding everything
         root_layout.addLayout(self.common_settings)
@@ -342,7 +381,8 @@ class UISpritesheetExporter:
         self.common_settings.apply_settings(self.exporter)
         self.frames.apply_settings(self.exporter)
         self.placement.apply_settings(self.exporter)
-        self.spin_boxes.apply_settings(self.exporter)
+        self.frame_times.apply_settings(self.exporter)
+        self.edges.apply_settings(self.exporter)
         self.exporter.layers_as_animation = self.layers_as_animation.isChecked()
 
         self.exporter.export()
