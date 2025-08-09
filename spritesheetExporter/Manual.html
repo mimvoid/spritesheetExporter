@@ -22,44 +22,33 @@
 
     <h2>How to use it</h2>
     <p>
-      <strong>Tools > Scripts > Export As Spritesheet</strong>
-      will export the animation from the currently selected document's animation
-      timeline.
+      <strong>Tools > Scripts > Export as Spritesheet</strong>
+      will export the animation from the current document's animation timeline.
     </p>
 
     <h2>Options</h2>
+    <h3>General</h3>
     <p>
-      <strong>export name</strong>: if you type in "exportName", the name of the
-      individual exported frames will be exportName_000.png, exportName_001.png,
-      etc., and the spritesheet will be called exportName.png . If your name
-      contains a comma, anything after the first comma will be ignored, and the
-      file will still export as a png (for example, "exportName",
-      "exportName.png", "exportName.pdf", "exportName.v12.final.finalfinal.xcf"
-      will all export to the same name, see example just above).
+      <strong>Export name</strong>: The name of the spritesheet file. If you
+      don't provide a file extension, such as an export name of "foo", the file
+      will be in PNG format.
     </p>
     <p>
-      <strong>export directory</strong>: select the folder in which the
-      spritesheet will be exported (the frames will be exported in a subfolder
-      of the export directory called exportName_sprites if no
-      <strong>sprites export directory</strong> is set)
+      <strong>Export directory</strong>: The folder in which the spritesheet
+      will be exported.
     </p>
     <p>
-      <strong>change export directory</strong>: Opens a file explorer to select
-      the Export Directory
+      <strong>Only unique frames</strong>: Only export unique frames, meaning
+      sprites with different pixel data.
     </p>
     <p>
-      <strong>reset to current directory</strong>: Resets the export directory
-      to the directory containing the currently active .kra document
+      <strong>Write JSON texture atlas</strong>: Writes a JSON texture atlas
+      file that can be used in game frameworks like Phaser 3. The atlas filename
+      will be the export name with a ".json" file extension.
     </p>
-    <p>
-      <strong>write json texture atlas</strong>: Writes a json texture atlas
-      file that can be used e.g. in the Phaser 3 game framework. The atlas
-      filename will be "exportName.json"
-    </p>
-
     <p>
       The filenames in the atlas file will be set to the numeric index of the
-      texture. Example:
+      texture. For example:
     </p>
     <pre>
 { "frames": [
@@ -70,98 +59,140 @@
 ...
     </pre>
 
+    <h3>Export image sequence</h3>
+    <p>Export separate files for each individual sprite.</p>
     <p>
-      <strong>use layers as animation frames</strong>: instead of exporting a
-      spritesheet using each frame, export one using each visible layer (for the
-      current frame); for people who have files formatted the photoshop way
-      (timeline and layers on the same axis), or for those who don't export
-      actual animations but sketches or something
+      <strong>Base name</strong>: The prefixed name for each sprite file. If you
+      type in "foo" and the export name will create a PNG file, the files will
+      be called "foo000.png", "foo001.png", etc.
     </p>
     <p>
-      <strong>export direction</strong>: How the frames are placed. For example,
-      in a 3*2 grid, frame numbers are as follows:
+      <strong>Custom directory</strong>: By default, the sprite files will be
+      exported to a folder called "spritesheet_sprites" in the same directory as
+      the current document. With this, you can set a different folder to export
+      the sprites to.
     </p>
     <p>
-      If horizontal:<br />
-      1, 2, 3<br />
-      4, 5, 6<br />
-    </p>
-    <p>
-      If vertical:<br />
-      1, 3, 5<br />
-      2, 4, 6<br />
+      <strong>Force new folder</strong>: If sprites folder already exists,
+      create a new folder with a different name. For example, if the existing
+      sprites folder is named "spritesheet_sprites", the new folder will be
+      named "spritesheet_sprites0". If unchecked, the files will be put in the
+      existing folder, potentially overwriting files.
     </p>
 
+    <h3>Extra</h3>
     <p>
-      <strong>rows</strong>: select the number of rows. If 0, the script will
-      guess it using the number of columns.
+      <strong>Use layers as animation frames</strong>: Instead of getting
+      sprites from each frame in the animation timeline, export one from each
+      visible layer (for the current frame). This is a good option for Photoshop
+      formatted files (with the timeline and layers on the same axis), or for
+      non-animation art, like sketches.
     </p>
     <p>
-      <strong>columns</strong>: select the number of columns. If 0, the script
-      will guess it using the number of rows (it might change the number of rows
-      to respect the horizontal priority)
+      <strong>Sprite placement</strong>: The direction to place the sprites in
+      the spritesheet. For example, in a 3x2 grid, the sprites numbers are as
+      follows:
+    </p>
+    <p>Horizontal:</p>
+    <pre>
+1 2 3
+4 5 6
+      </pre
+    >
+    <p>Vertical:</p>
+    <pre>
+1 3 5
+2 4 6
+      </pre
+    >
+    <p>
+      <strong>Columns</strong>: The number of columns for the spritesheet. This
+      can only be set if the sprite placement is horizontal. The number of rows
+      will be calculated based on the number of sprites and columns.
     </p>
     <p>
-      If both rows and columns are set to 0, the default value will be used for
-      both.
-      <em>
-        (I'm torn between the default being one row or a square-ish image, I'd
-        love to hear what other people think about this)
-      </em>
+      <strong>Rows</strong>: The number of rows for the spritesheet. This can
+      only be set if the sprite placement is vertical. The number of columns
+      will be calculated based on the number of sprites and rows.
     </p>
     <p>
-      <strong>start</strong> and <strong>end</strong>: the start and end of the
-      animation to export to spritesheet. Anything outside those values will not
-      be considered.
+      For either columns or rows, if auto, the spritesheet will try to fit a
+      square. If there are not enough sprites to fill the space (such as 4
+      sprites for an 8 column spritesheet), the empty space will be
+      automatically clipped.
+    </p>
+    <p><strong>Start</strong>: The first frame of the animation to export.</p>
+    <p><strong>End</strong>: The last frame of the animation to export.</p>
+    <p><strong>Step</strong>: Export every 'step' frame of the animation.</p>
+    <p>
+      If start or end are auto, the plugin will find the first and/or last
+      keyframe out of all visible frames.
     </p>
     <p>
-      <strong>step</strong>: Only consider every 'step' frame when exporting to
-      spritesheet
+      <strong>Padding left</strong>: How much to pad the left edge of a sprite.
     </p>
     <p>
-      If start and end are both set to -1, it will use the default value for
-      both (that is, the actual animation length, considering all visible
-      layers)
+      <strong>Padding top</strong>: How much to pad the top edge of a sprite.
     </p>
     <p>
-      <strong>force new folder</strong>: if the export folder already exists,
-      whether to create a new one in its parent directory (checked), or export
-      in it anyway, potentially overwriting existing files (unchecked).
+      <strong>Padding right</strong>: How much to pad the right edge of a
+      sprite.
+    </p>
+    <p>
+      <strong>Padding bottom</strong>: How much to pad the bottom edge of a
+      sprite.
+    </p>
+    <p>
+      If padding is set to a negative value, the sprite will be clipped instead
+      of padded on that edge.
     </p>
 
     <h2>Other spritesheet manipulations</h2>
     <p>
-      If you want to <strong>import spritesheets</strong>, just use the built-in
-      tools and simply (with your spritesheet open) go to Image > Image Split
-      then (in a new file of the same dimensions as one frame), File > Import
-      Animation Frames (<a
-        href="https://docs.krita.org/en/user_manual/animation.html#importing-animation-frames"
-        >official tuto with images here</a>)
+      To <strong>import a spritesheet</strong> to the animation timeline of a
+      new layer, use the built-in tools. First, use Image > Image Split on the
+      spritesheet document. Then, in a new file of the same dimensions as one
+      frame, use File > Import Animation Frames.
     </p>
     <p>
-      If you want to <strong>merge existing spritesheets</strong>, open the
-      biggest one to get a document its size, then remove or hide it so your
-      document is empty, then import each spritesheet on a different frame (File
-      > Import Animation Frames) and export them as a spritesheet (Tools >
-      Scripts > Export As Spritesheet); you probably want 1 column and 0
-      (default) rows if your individual spritesheets are each one line
+      (See also the
+      <a
+        href="https://docs.krita.org/en/user_manual/animation.html#importing-animation-frames"
+        >official tutorial with images</a
+      >.)
+    </p>
+    <p>
+      To <strong>merge a spritesheet</strong>, import each spritesheet as a
+      frame in the same document with File > Import Animation Frames. Then,
+      export them as a spritesheet with Tools > Scripts > Export as Spritesheet.
+      You probably want 1 column if your individual spritesheets are each one
+      line.
     </p>
 
     <h2>Notes</h2>
-    <p>If you want to <strong>activate debug messages</strong>:</p>
+    <p>To <strong>activate debug messages</strong>:</p>
     <p>
-      Go to the uispritesheetexporter.py file and change the second to last
-      line, from "self.exp.export()" to "self.exp.export(True)"; it will print
-      the debugs in the terminal (if you launched krita through the terminal)
+      Go to the Krita resources folder and find the
+      pykrita/spritesheetExporter/ui.py file. Then, change the second to last
+      line from <code>self.exporter.export()</code> to
+      <code>self.exporter.export(True)</code>. The plugin will now print debug
+      messages to the terminal Krita is launched in.
     </p>
 
     <hr />
 
     <p>
-      If you have comments, suggestions, or need to contact me, send me an email
-      at: noemie.scherer@gmail.com or open an issue at
-      https://github.com/Falano/kritaSpritesheetManager (which is also where you
-      can re-download it in case of need)
+      This is a fork of the Spritesheet Exporter plugin with added features and
+      fixes. Feel free to submit feature requests and bug reports to
+      <a href="https://github.com/mimvoid/spritesheetExporter"
+        >https://github.com/mimvoid/spritesheetExporter</a
+      >.
+    </p>
+    <p>
+      From the original plugin author: If you have comments, suggestions, or
+      need to contact me, send me an email at: noemie.scherer@gmail.com or open
+      an issue at https://github.com/Falano/kritaSpritesheetManager (which is
+      also where you can re-download it in case of need)
     </p>
   </body>
 </html>
