@@ -270,6 +270,7 @@ class SpritesheetExporter:
             if texture_atlas is not None:
                 texture_atlas["frames"].append(
                     {
+                        "filename": i,
                         "frame": {
                             "x": x_pos,
                             "y": y_pos,
