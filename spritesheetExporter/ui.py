@@ -44,10 +44,10 @@ class CommonSettings(QFormLayout):
     def __init__(self):
         super().__init__()
 
-        self.name.setToolTip("The name of the exported spritesheet file")
-        self.directory.setToolTip("The directory the spritesheet will be exported to")
+        self.name.setToolTip("Name of the exported spritesheet file")
+        self.directory.setToolTip("Directory to export the spritesheet to")
 
-        self.change_dir.setToolTip("Open a file picker to choose the export directory")
+        self.change_dir.setToolTip("Open a file picker for the export directory")
         self.reset_dir.setToolTip(
             "Reset export directory to the current document's directory"
         )
@@ -91,12 +91,11 @@ class FramesExport(QGroupBox):
         self.setCheckable(True)
         self.setChecked(False)
 
-        self.custom_dir.setToolTip("Manually define the images' export directory")
         self.toggle_custom_dir(Qt.Unchecked)
         self.custom_dir.stateChanged.connect(self.toggle_custom_dir)
 
-        self.directory.setToolTip("The directory the images will be exported to")
-        self.change_dir.setToolTip("Open a file picker to choose the images directory")
+        self.directory.setToolTip("Directory the images will be exported to")
+        self.change_dir.setToolTip("Open a file picker for the images directory")
         self.reset_dir.setToolTip("Reset images directory based on the export path")
 
         self.force_new.setToolTip(
@@ -152,10 +151,10 @@ class SpritePlacement(QFormLayout):
         self.setHorizontalSpacing(12)
 
         self.h_dir.setChecked(True)
-        self.h_dir.setToolTip("Order the sprites horizontally")
+        self.h_dir.setToolTip("Order sprites horizontally")
 
         v_dir = QRadioButton("Vertical")
-        v_dir.setToolTip("Order the sprites vertically")
+        v_dir.setToolTip("Order sprites vertically")
 
         self.size.setSpecialValueText("Auto")
         self.size.setToolTip("Number of columns or rows in the spritesheet")
@@ -211,7 +210,7 @@ class SpinBoxes(QFormLayout):
         self.start.setToolTip("First frame time of the animation (inclusive)")
         self.end.setToolTip("Last frame time of the animation (inclusive)")
         self.step.setToolTip(
-            "Only export each 'step' number of frames.\nDefaults to every frame"
+            "Only export each 'step' numbered frame. Defaults to every frame"
         )
 
         self.addRow("Start:", self.start)
@@ -253,7 +252,7 @@ class EdgePadding(QFormLayout):
         spin_box = QSpinBox(value=0, minimum=-99, maximum=99)
         spin_box.setSuffix("px")
         spin_box.setToolTip(
-            f"Pads the {edge} edge of each sprite, or clips it if negative"
+            f"Pad the {edge} edge of each sprite, or clip it if negative"
         )
         return spin_box
 
@@ -290,7 +289,7 @@ class UISpritesheetExporter:
         self.frames.reset_dir.clicked.connect(self.reset_frames_dir)
 
         self.layers_as_animation.setToolTip(
-            "Whether to treat each layer as a frame instead of using the animation timeline"
+            "Treat each layer as a frame instead of using the animation timeline"
         )
 
         self.dialog_buttons.accepted.connect(self.confirm_button)
