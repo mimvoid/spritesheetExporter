@@ -25,7 +25,9 @@ class SpritesheetExporter:
     unique_frames: bool
 
     horizontal: bool
-    size: int
+    columns: int
+    rows: int
+
     start: int
     end: int
 
@@ -261,11 +263,11 @@ class SpritesheetExporter:
 
             # Layers are ordered by when they were added, so using `i` is fine
             if self.horizontal:
-                x_pos = (i % self.size) * width
-                y_pos = (i // self.size) * height
+                x_pos = (i % self.columns) * width
+                y_pos = (i // self.columns) * height
             else:
-                x_pos = (i // self.size) * width
-                y_pos = (i % self.size) * height
+                x_pos = (i // self.rows) * width
+                y_pos = (i % self.rows) * height
 
             layer.move(x_pos, y_pos)
 
@@ -338,29 +340,29 @@ class SpritesheetExporter:
         self._copy_frames(doc, sheet)
         num_frames = len(sheet.topLevelNodes())
 
-        if self.size == DEFAULT_SPACE:
-            # Pack the sprites as densely as possible with a square fit
-            self.size = ceil(sqrt(num_frames))
-            columns, rows = self.size, self.size
-        else:
+        if self.columns != DEFAULT_SPACE:
             # Remove empty sprite cells
-            self.size = min(self.size, num_frames)
+            self.columns = min(self.columns, num_frames)
+            self.rows = ceil(num_frames / self.columns)
+        elif self.rows != DEFAULT_SPACE:
+            self.rows = min(self.rows, num_frames)
+            self.columns = ceil(num_frames / self.rows)
+        else:
+            # Pack the sprites as densely as possible with a square fit
+            size = ceil(sqrt(num_frames))
+            self.columns = size
+            self.rows = size
 
-            columns = self.size
-            rows = ceil(num_frames / columns)
-            if not self.horizontal:
-                columns, rows = rows, columns
-
-        sheet.setWidth(columns * width)
-        sheet.setHeight(rows * height)
+        sheet.setWidth(self.columns * width)
+        sheet.setHeight(self.rows * height)
 
         if debug:
             print(
                 f"New document name: {sheet.name()}",
                 f"New document size: {sheet.width()}x{sheet.height()}",
                 f"Number of frames: {num_frames}",
-                f"Columns: {columns}",
-                f"Rows: {rows}",
+                f"Columns: {self.columns}",
+                f"Rows: {self.rows}",
                 sep="\n",
             )
 

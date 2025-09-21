@@ -10,6 +10,7 @@ from PyQt5.QtWidgets import (
     QFormLayout,
     QGridLayout,
     QGroupBox,
+    QButtonGroup,
     QPushButton,
     QFileDialog,
     QSpinBox,
@@ -144,8 +145,9 @@ class SpritePlacement(QFormLayout):
     h_dir = QRadioButton("Horizontal")
     v_dir = QRadioButton("Vertical")
 
-    columns = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
-    rows = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
+    columns = QRadioButton("Columns")
+    rows = QRadioButton("Rows")
+    size = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
 
     def __init__(self):
         super().__init__()
@@ -156,47 +158,42 @@ class SpritePlacement(QFormLayout):
         self.h_dir.setToolTip("Order the sprites horizontally")
         self.v_dir.setToolTip("Order the sprites vertically")
 
-        self.columns.setSpecialValueText("Auto")
-        self.columns.setToolTip("Number of columns in the spritesheet")
+        self.size.setSpecialValueText("Auto")
+        self.size.setToolTip("Number of columns or rows in the spritesheet")
 
-        self.rows.setEnabled(False)
-        self.rows.setSpecialValueText("Auto")
-        self.rows.setToolTip("Number of rows in the spritesheet")
+        self.columns.setChecked(True)
 
-        self.h_dir.toggled.connect(self.toggle_horizontal)
-        self.v_dir.toggled.connect(self.toggle_vertical)
+        dirs = QVBoxLayout()
+        dirs.addWidget(self.h_dir)
+        dirs.addWidget(self.v_dir)
+        dirs_buttons = QButtonGroup()
+        dirs_buttons.addButton(self.h_dir)
+        dirs_buttons.addButton(self.v_dir)
 
-        col_layout = QFormLayout()
-        col_layout.setHorizontalSpacing(4)
-        col_layout.addRow("Columns:", self.columns)
+        sizes = QHBoxLayout()
 
-        row_layout = QFormLayout()
-        row_layout.setHorizontalSpacing(4)
-        row_layout.addRow("Rows:", self.rows)
+        size_buttons_box = QVBoxLayout()
+        size_buttons_box.addWidget(self.columns)
+        size_buttons_box.addWidget(self.rows)
+        size_buttons = QButtonGroup(size_buttons_box)
+        size_buttons.addButton(self.columns)
+        size_buttons.addButton(self.rows)
 
-        field = QGridLayout()
-        field.addWidget(self.h_dir, 0, 0)
-        field.addWidget(self.v_dir, 0, 1)
-        field.addLayout(col_layout, 1, 0)
-        field.addLayout(row_layout, 1, 1)
+        sizes.addLayout(size_buttons_box)
+        sizes.addWidget(self.size)
 
-        self.addRow("Sprite placement:", field)
-
-    def toggle_horizontal(self, checked: bool):
-        self.columns.setEnabled(checked)
-        self.rows.setEnabled(not checked)
-
-    def toggle_vertical(self, checked: bool):
-        self.columns.setEnabled(not checked)
-        self.rows.setEnabled(checked)
+        self.addRow("Sprite placement:", dirs)
+        self.addRow("Spritesheet size:", sizes)
 
     def apply_settings(self, exporter: SpritesheetExporter):
-        if self.h_dir.isChecked():
-            exporter.horizontal = True
-            exporter.size = self.columns.value()
+        exporter.horizontal = self.h_dir.isChecked()
+
+        if self.columns.isChecked():
+            exporter.columns = self.size.value()
+            exporter.rows = DEFAULT_SPACE
         else:
-            exporter.horizontal = False
-            exporter.size = self.rows.value()
+            exporter.columns = DEFAULT_SPACE
+            exporter.rows = self.size.value()
 
 
 class SpinBoxes(QFormLayout):
