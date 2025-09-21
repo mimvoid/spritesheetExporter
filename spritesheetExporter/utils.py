@@ -15,7 +15,7 @@ def _recurse_children(node: Node, result: list[Node]) -> list[Node]:
 
     for child in node.childNodes():
         append(child)
-        if child.childNodes() != []:
+        if len(child.childNodes()) != 0:
             _recurse_children(child, result)
 
     return result
@@ -31,7 +31,7 @@ def _filter_recurse_children(node: Node, type: str, result: list[Node]) -> list[
     for child in node.childNodes():
         if child.type() == type:
             append(child)
-        if child.childNodes() != []:
+        if len(child.childNodes()) != 0:
             _filter_recurse_children(child, type, result)
 
     return result

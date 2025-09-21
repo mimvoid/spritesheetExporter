@@ -212,10 +212,9 @@ class SpritesheetExporter:
                 self._set_frame_times(src)
 
             initial_time = src.currentTime()
-            frame_range = range(self.start, self.end + 1, self.step)
 
             # Export each frame
-            for i in frame_range:
+            for i in range(self.start, self.end + 1, self.step):
                 src.setCurrentTime(i)
 
                 # Ensure the time has been set before copying the pixel data
@@ -246,7 +245,7 @@ class SpritesheetExporter:
         height = src.height() + self.pad_top + self.pad_bottom
 
         frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
-        texture_atlas = {"frames": []} if self.write_texture_atlas else None
+        texture_atlas = [] if self.write_texture_atlas else None
 
         for i, layer in enumerate(dest.topLevelNodes()):
             if frames_dir is not None:
@@ -272,7 +271,7 @@ class SpritesheetExporter:
             layer.move(x_pos, y_pos)
 
             if texture_atlas is not None:
-                texture_atlas["frames"].append(
+                texture_atlas.append(
                     {
                         "filename": i,
                         "frame": {
@@ -286,7 +285,7 @@ class SpritesheetExporter:
 
         if texture_atlas is not None:
             with self.export_path.with_suffix(".json").open("w") as f:
-                json.dump(texture_atlas, f)
+                json.dump({"frames": texture_atlas}, f)
 
     def export(self, debug=False):
         """
@@ -306,11 +305,8 @@ class SpritesheetExporter:
         height = doc.height() + self.pad_top + self.pad_bottom
 
         if debug:
-            print(
-                f"Source document name: {doc.name()}",
-                f"Source document size: {width}x{height}",
-                sep="\n",
-            )
+            print("Source document name:", doc.name())
+            print(f"Source document size: {width}x{height}")
 
         if self.export_path.suffix == "":
             if debug:

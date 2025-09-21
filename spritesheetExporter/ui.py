@@ -8,7 +8,6 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QFormLayout,
-    QGridLayout,
     QGroupBox,
     QButtonGroup,
     QPushButton,
@@ -22,6 +21,7 @@ from PyQt5.QtWidgets import (
 )
 from builtins import i18n
 
+from functools import partial
 from pathlib import Path  # Operating system-independent path operations
 from typing import Optional
 from .spritesheet_exporter import (
@@ -143,10 +143,7 @@ class SpritePlacement(QFormLayout):
     """
 
     h_dir = QRadioButton("Horizontal")
-    v_dir = QRadioButton("Vertical")
-
     columns = QRadioButton("Columns")
-    rows = QRadioButton("Rows")
     size = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
 
     def __init__(self):
@@ -156,28 +153,31 @@ class SpritePlacement(QFormLayout):
 
         self.h_dir.setChecked(True)
         self.h_dir.setToolTip("Order the sprites horizontally")
-        self.v_dir.setToolTip("Order the sprites vertically")
+
+        v_dir = QRadioButton("Vertical")
+        v_dir.setToolTip("Order the sprites vertically")
 
         self.size.setSpecialValueText("Auto")
         self.size.setToolTip("Number of columns or rows in the spritesheet")
 
         self.columns.setChecked(True)
+        rows = QRadioButton("Rows")
 
         dirs = QVBoxLayout()
         dirs.addWidget(self.h_dir)
-        dirs.addWidget(self.v_dir)
+        dirs.addWidget(v_dir)
         dirs_buttons = QButtonGroup()
         dirs_buttons.addButton(self.h_dir)
-        dirs_buttons.addButton(self.v_dir)
+        dirs_buttons.addButton(v_dir)
 
         sizes = QHBoxLayout()
 
         size_buttons_box = QVBoxLayout()
         size_buttons_box.addWidget(self.columns)
-        size_buttons_box.addWidget(self.rows)
+        size_buttons_box.addWidget(rows)
         size_buttons = QButtonGroup(size_buttons_box)
         size_buttons.addButton(self.columns)
-        size_buttons.addButton(self.rows)
+        size_buttons.addButton(rows)
 
         sizes.addLayout(size_buttons_box)
         sizes.addWidget(self.size)
@@ -197,15 +197,12 @@ class SpritePlacement(QFormLayout):
 
 
 class SpinBoxes(QFormLayout):
-    start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
-    end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
+    start = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
+    end = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
     step = QSpinBox(value=1, minimum=1)
 
     def __init__(self):
         super().__init__()
-
-        self.start.setValue(DEFAULT_TIME)
-        self.end.setValue(DEFAULT_TIME)
 
         self.start.setSpecialValueText("Auto")
         self.end.setSpecialValueText("Auto")
@@ -282,10 +279,14 @@ class UISpritesheetExporter:
         self.dialog.setMinimumSize(425, 480)
         self.dialog.setSizeGripEnabled(True)
 
-        self.common_settings.change_dir.clicked.connect(self.change_export_dir)
+        self.common_settings.change_dir.clicked.connect(
+            partial(self.change_dir, self.common_settings.directory)
+        )
         self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
 
-        self.frames.change_dir.clicked.connect(self.change_frames_dir)
+        self.frames.change_dir.clicked.connect(
+            partial(self.change_dir, self.frames.directory)
+        )
         self.frames.reset_dir.clicked.connect(self.reset_frames_dir)
 
         self.layers_as_animation.setToolTip(
@@ -345,23 +346,17 @@ class UISpritesheetExporter:
 
         return file_dialog.getExistingDirectory()
 
-    def change_export_dir(self):
+    @staticmethod
+    def change_dir(input: QLineEdit):
         # Grab the output path on directory changed
-        path = UISpritesheetExporter.pick_directory_dialog(
-            self.common_settings.directory.text()
-        )
+        path = UISpritesheetExporter.pick_directory_dialog(input.text())
         if path != "":
-            self.common_settings.directory.setText(path)
+            input.setText(path)
 
     def reset_export_dir(self):
         path = UISpritesheetExporter.current_directory()
         if path:
             self.common_settings.directory.setText(str(path))
-
-    def change_frames_dir(self):
-        path = UISpritesheetExporter.pick_directory_dialog(self.frames.directory.text())
-        if path != "":
-            self.frames.directory.setText(path)
 
     def reset_frames_dir(self):
         path = UISpritesheetExporter.current_directory()
