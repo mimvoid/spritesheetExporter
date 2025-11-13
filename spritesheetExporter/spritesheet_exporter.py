@@ -13,7 +13,7 @@ from pathlib import Path
 
 from .utils import KritaVersion
 
-SPRITESHEET_EXPORTER_VERSION = "0.1.0"
+SPRITESHEET_EXPORTER_VERSION = "0.2.0"
 
 KI = Krita.instance()
 DEFAULT_TIME = -1
