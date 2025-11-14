@@ -17,9 +17,9 @@ from .ui import Dialog
 
 def _current_directory() -> Optional[Path]:
     doc = Krita.instance().activeDocument()
-    if not doc or not doc.fileName():
-        return None
-    return Path(doc.fileName()).parent
+    if doc and doc.fileName():
+        return Path(doc.fileName()).parent
+    return None
 
 
 def _pick_directory_dialog(directory: str) -> str:
@@ -65,19 +65,6 @@ class Controller:
         self.dialog.show()
         self.dialog.activateWindow()
 
-    def reset_export_dir(self):
-        path = _current_directory()
-        if path:
-            self.dialog.main_settings.directory.setText(str(path))
-
-    def reset_frames_dir(self):
-        path = _current_directory()
-        if path:
-            frames_dir = Path(
-                path, self.dialog.main_settings.name.text().split(".")[0] + "_sprites"
-            )
-            self.dialog.frames.directory.setText(str(frames_dir))
-
     def export(self):
         self.dialog.main_settings.apply_settings(self.exporter)
         self.dialog.frames.apply_settings(self.exporter)
@@ -87,3 +74,15 @@ class Controller:
         self.exporter.layers_as_animation = self.dialog.layers_as_animation.isChecked()
 
         self.exporter.export()
+
+    def reset_export_dir(self):
+        path = _current_directory()
+        if path:
+            self.dialog.main_settings.directory.setText(str(path))
+
+    def reset_frames_dir(self):
+        path = _current_directory()
+        if path:
+            basename = self.dialog.main_settings.name.text().rsplit(".", 1)[0]
+            frames_dir = Path(path, basename + "_sprites")
+            self.dialog.frames.directory.setText(str(frames_dir))
