@@ -3,7 +3,7 @@ The UI that displays configuration options to the user with a dialog window.
 """
 
 from krita import Krita
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
@@ -28,34 +28,39 @@ from .exporter import (
 )
 
 
-class CommonSettings(QFormLayout):
-    name = QLineEdit("spritesheet.png")
-    directory = QLineEdit()
-    change_dir = QPushButton(Krita.instance().icon("folder"), None)
-    reset_dir = QPushButton(Krita.instance().icon("view-refresh"), None)
-
-    unique_frames = QCheckBox("Only unique frames")
-    write_texture_atlas = QCheckBox("Write JSON texture atlas")
+class MainSettings(QFormLayout):
+    change_dir_clicked = pyqtSignal()
+    reset_dir_clicked = pyqtSignal()
 
     def __init__(self):
         super().__init__()
+        ki = Krita.instance()
 
+        self.name = QLineEdit("spritesheet.png")
         self.name.setToolTip("Name of the exported spritesheet file")
+
+        self.directory = QLineEdit()
         self.directory.setToolTip("Directory to export the spritesheet to")
 
-        self.change_dir.setToolTip("Open a file picker for the export directory")
-        self.reset_dir.setToolTip(
+        change_dir = QPushButton(ki.icon("folder"), None)
+        change_dir.setToolTip("Open a file picker for the export directory")
+        change_dir.clicked.connect(self.change_dir_clicked.emit)
+
+        reset_dir = QPushButton(ki.icon("view-refresh"), None)
+        reset_dir.setToolTip(
             "Reset export directory to the current document's directory"
         )
+        reset_dir.clicked.connect(self.reset_dir_clicked.emit)
 
+        self.unique_frames = QCheckBox("Only unique frames")
+        self.write_texture_atlas = QCheckBox("Write JSON texture atlas")
         self.write_texture_atlas.setToolTip(
             "Write a JSON texture atlas that can be used in game frameworks (e.g. Phaser 3)"
         )
 
         dir_layout = QHBoxLayout()
-        dir_layout.addWidget(self.directory)
-        dir_layout.addWidget(self.change_dir)
-        dir_layout.addWidget(self.reset_dir)
+        for w in (self.directory, change_dir, reset_dir):
+            dir_layout.addWidget(w)
 
         self.addRow("Export name:", self.name)
         self.addRow("Export directory:", dir_layout)
@@ -73,47 +78,46 @@ class FramesExport(QGroupBox):
     Controls configuration for exporting individual frames as an image sequence.
     """
 
-    base_name = QLineEdit("sprite")
-
-    custom_dir = QCheckBox("Custom directory")
-    directory = QLineEdit()
-    change_dir = QPushButton(Krita.instance().icon("folder"), None)
-    reset_dir = QPushButton(Krita.instance().icon("view-refresh"), None)
-
-    force_new = QCheckBox("Force new folder")
+    change_dir_clicked = pyqtSignal()
+    reset_dir_clicked = pyqtSignal()
 
     def __init__(self):
         super().__init__("Export image sequence")
         self.setCheckable(True)
         self.setChecked(False)
+        ki = Krita.instance()
 
-        self.toggle_custom_dir(Qt.Unchecked)
-        self.custom_dir.stateChanged.connect(self.toggle_custom_dir)
+        self.base_name = QLineEdit("sprite")
+        self.custom_dir = QCheckBox("Custom directory")
 
+        self.directory = QLineEdit()
         self.directory.setToolTip("Directory the images will be exported to")
-        self.change_dir.setToolTip("Open a file picker for the images directory")
-        self.reset_dir.setToolTip("Reset images directory based on the export path")
 
+        change_dir = QPushButton(ki.icon("folder"), None)
+        change_dir.setToolTip("Open a file picker for the images directory")
+        change_dir.clicked.connect(self.change_dir_clicked.emit)
+
+        reset_dir = QPushButton(ki.icon("view-refresh"), None)
+        reset_dir.setToolTip("Reset images directory based on the export path")
+        reset_dir.clicked.connect(self.reset_dir_clicked.emit)
+
+        self.force_new = QCheckBox("Force new folder")
         self.force_new.setToolTip(
             "If checked, create a new frames folder if one exists.\nOtherwise, write the sprites in the existing folder (may overwrite files)"
         )
 
         dir_layout = QHBoxLayout()
         dir_layout.addWidget(self.custom_dir)
-        dir_layout.addWidget(self.directory)
-        dir_layout.addWidget(self.change_dir)
-        dir_layout.addWidget(self.reset_dir)
+
+        for w in (self.directory, change_dir, reset_dir):
+            w.setEnabled(False)
+            self.custom_dir.toggled.connect(w.setEnabled)
+            dir_layout.addWidget(w)
 
         layout = QFormLayout(self)
         layout.addRow("Base name:", self.base_name)
         layout.addRow(dir_layout)
         layout.addRow(self.force_new)
-
-    def toggle_custom_dir(self, state: int):
-        enabled = state == Qt.Checked
-        self.directory.setEnabled(enabled)
-        self.change_dir.setEnabled(enabled)
-        self.reset_dir.setEnabled(enabled)
 
     def apply_settings(self, exporter: Exporter):
         if not self.isChecked():
@@ -137,24 +141,23 @@ class SpritePlacement(QFormLayout):
     oriented, and how many cells to put in that direction.
     """
 
-    h_dir = QRadioButton("Horizontal")
-    columns = QRadioButton("Columns")
-    size = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
-
     def __init__(self):
         super().__init__()
         self.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         self.setHorizontalSpacing(12)
 
+        self.h_dir = QRadioButton("Horizontal")
         self.h_dir.setChecked(True)
         self.h_dir.setToolTip("Order sprites horizontally")
 
         v_dir = QRadioButton("Vertical")
         v_dir.setToolTip("Order sprites vertically")
 
+        self.size = QSpinBox(value=DEFAULT_SPACE, minimum=DEFAULT_SPACE)
         self.size.setSpecialValueText("Auto")
         self.size.setToolTip("Number of columns or rows in the spritesheet")
 
+        self.columns = QRadioButton("Columns")
         self.columns.setChecked(True)
         rows = QRadioButton("Rows")
 
@@ -192,16 +195,15 @@ class SpritePlacement(QFormLayout):
 
 
 class SpinBoxes(QFormLayout):
-    start = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
-    end = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
-    step = QSpinBox(value=1, minimum=1)
-
     def __init__(self):
         super().__init__()
 
-        self.start.setSpecialValueText("Auto")
-        self.end.setSpecialValueText("Auto")
-        self.step.setSpecialValueText("Auto")
+        self.start = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
+        self.end = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
+        self.step = QSpinBox(value=1, minimum=1)
+
+        for spin_box in (self.start, self.end, self.step):
+            spin_box.setSpecialValueText("Auto")
 
         self.start.setToolTip("First frame time of the animation (inclusive)")
         self.end.setToolTip("Last frame time of the animation (inclusive)")
@@ -227,15 +229,10 @@ class EdgePadding(QFormLayout):
     def __init__(self):
         super().__init__()
 
-        self.left = self._make_spin_box("left")
-        self.top = self._make_spin_box("top")
-        self.right = self._make_spin_box("right")
-        self.bottom = self._make_spin_box("bottom")
-
-        self.addRow("Padding left:", self.left)
-        self.addRow("Padding top:", self.top)
-        self.addRow("Padding right:", self.right)
-        self.addRow("Padding bottom:", self.bottom)
+        self.left = self._add_spin_box("left")
+        self.top = self._add_spin_box("top")
+        self.right = self._add_spin_box("right")
+        self.bottom = self._add_spin_box("bottom")
 
     def apply_settings(self, exp: Exporter) -> None:
         exp.pad_left = self.left.value()
@@ -243,28 +240,18 @@ class EdgePadding(QFormLayout):
         exp.pad_right = self.right.value()
         exp.pad_bottom = self.bottom.value()
 
-    @staticmethod
-    def _make_spin_box(edge: str) -> QSpinBox:
+    def _add_spin_box(self, edge: str) -> QSpinBox:
         spin_box = QSpinBox(value=0, minimum=-99, maximum=99)
         spin_box.setSuffix("px")
         spin_box.setToolTip(
             f"Pad the {edge} edge of each sprite, or clip it if negative"
         )
+
+        self.addRow(f"Padding {edge}:", spin_box)
         return spin_box
 
 
 class Dialog(QDialog):
-    common_settings = CommonSettings()
-    frames = FramesExport()
-    edges = EdgePadding()
-
-    # Extra settings group
-    layers_as_animation = QCheckBox("Use layers as animation frames")
-    placement = SpritePlacement()
-    frame_times = SpinBoxes()
-
-    dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
-
     def __init__(self):
         super().__init__()
         self.setWindowTitle(i18n("SpritesheetExporter"))
@@ -272,11 +259,21 @@ class Dialog(QDialog):
         self.setMinimumSize(425, 480)
         self.setSizeGripEnabled(True)
 
+        self.main_settings = MainSettings()
+        self.frames = FramesExport()
+        self.edges = EdgePadding()
+
+        # Extra settings group
+        self.layers_as_animation = QCheckBox("Use layers as animation frames")
         self.layers_as_animation.setToolTip(
             "Treat each layer as a frame instead of using the animation timeline"
         )
+        self.placement = SpritePlacement()
+        self.frame_times = SpinBoxes()
 
-        self.dialog_buttons.rejected.connect(self.close)
+        dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        dialog_buttons.accepted.connect(self.accept)
+        dialog_buttons.rejected.connect(self.reject)
 
         # Setup layouts
         spin_boxes = QHBoxLayout()
@@ -295,7 +292,7 @@ class Dialog(QDialog):
         extras.addLayout(spin_boxes)
 
         root_layout = QVBoxLayout(self)  # the box holding everything
-        root_layout.addLayout(self.common_settings)
+        root_layout.addLayout(self.main_settings)
         root_layout.addWidget(self.frames)
         root_layout.addWidget(extra_settings)
-        root_layout.addWidget(self.dialog_buttons)
+        root_layout.addWidget(dialog_buttons)
