@@ -9,8 +9,6 @@ from .controller import Controller
 
 
 class SpritesheetExporter(Extension):
-    controller = Controller()
-
     def __init__(self, parent):
         """
         Always initialise the superclass.
@@ -35,7 +33,15 @@ class SpritesheetExporter(Extension):
         )
 
         export_action.setToolTip("Export animation in timeline as spritesheet")
-        export_action.triggered.connect(self.controller.show_dialog)
+        export_action.triggered.connect(self._show_dialog)
+
+    def _show_dialog(self) -> None:
+        """
+        Creates the controller if it does not exist, and shows the dialog.
+        """
+        if not hasattr(self, "_controller"):
+            self._controller = Controller()
+        self._controller.show_dialog()
 
 
 Scripter.addExtension(SpritesheetExporter(Krita.instance()))
