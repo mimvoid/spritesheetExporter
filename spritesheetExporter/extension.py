@@ -2,11 +2,10 @@
 Connects everything in the Spritesheet Exporter plugin to be accessed through Krita.
 """
 
-from krita import Extension
+from krita import Krita, Extension
 from builtins import Scripter
 
 from .ui import UISpritesheetExporter
-from .spritesheet_exporter import KI
 
 
 class SpritesheetExporterExtension(Extension):
@@ -39,4 +38,4 @@ class SpritesheetExporterExtension(Extension):
         export_action.triggered.connect(self.ui.show_dialog)
 
 
-Scripter.addExtension(SpritesheetExporterExtension(KI))
+Scripter.addExtension(SpritesheetExporterExtension(Krita.instance()))

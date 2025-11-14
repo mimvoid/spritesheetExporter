@@ -3,6 +3,7 @@ The UI that connects the backend to the frontend with a dialog window
 and displays the configuration options to the user.
 """
 
+from krita import Krita
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -26,7 +27,6 @@ from pathlib import Path  # Operating system-independent path operations
 from typing import Optional
 from .spritesheet_exporter import (
     SpritesheetExporter,
-    KI,
     DEFAULT_SPACE,
     DEFAULT_TIME,
 )
@@ -35,8 +35,8 @@ from .spritesheet_exporter import (
 class CommonSettings(QFormLayout):
     name = QLineEdit("spritesheet.png")
     directory = QLineEdit()
-    change_dir = QPushButton(KI.icon("folder"), None)
-    reset_dir = QPushButton(KI.icon("view-refresh"), None)
+    change_dir = QPushButton(Krita.instance().icon("folder"), None)
+    reset_dir = QPushButton(Krita.instance().icon("view-refresh"), None)
 
     unique_frames = QCheckBox("Only unique frames")
     write_texture_atlas = QCheckBox("Write JSON texture atlas")
@@ -81,8 +81,8 @@ class FramesExport(QGroupBox):
 
     custom_dir = QCheckBox("Custom directory")
     directory = QLineEdit()
-    change_dir = QPushButton(KI.icon("folder"), None)
-    reset_dir = QPushButton(KI.icon("view-refresh"), None)
+    change_dir = QPushButton(Krita.instance().icon("folder"), None)
+    reset_dir = QPushButton(Krita.instance().icon("view-refresh"), None)
 
     force_new = QCheckBox("Force new folder")
 
@@ -329,7 +329,7 @@ class UISpritesheetExporter:
 
     @staticmethod
     def current_directory() -> Optional[Path]:
-        doc = KI.activeDocument()
+        doc = Krita.instance().activeDocument()
         if not doc or not doc.fileName():
             return None
         return Path(doc.fileName()).parent

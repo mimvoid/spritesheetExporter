@@ -15,7 +15,6 @@ from .utils import KritaVersion
 
 SPRITESHEET_EXPORTER_VERSION = "0.2.0"
 
-KI = Krita.instance()
 DEFAULT_TIME = -1
 DEFAULT_SPACE = 0
 
@@ -293,7 +292,8 @@ class SpritesheetExporter:
         accordingly.
         """
 
-        doc = KI.activeDocument()
+        kinstance = Krita.instance()
+        doc = kinstance.activeDocument()
         if not doc:
             return
 
@@ -314,7 +314,7 @@ class SpritesheetExporter:
             self.export_path = self.export_path.with_suffix(".png")
 
         # Create a new document for the spritesheet
-        sheet = KI.createDocument(
+        sheet = kinstance.createDocument(
             width,
             height,
             self.export_path.name,
@@ -365,7 +365,7 @@ class SpritesheetExporter:
         self._process_frames(doc, sheet)
 
         sheet.refreshProjection()  # Refresh canvas to show the layers
-        KI.activeWindow().addView(sheet)  # Show the canvas to the user
+        kinstance.activeWindow().addView(sheet)  # Show the canvas to the user
 
         if debug:
             print("Saving spritesheet to", sheet.fileName())
