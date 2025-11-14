@@ -1,1 +1,1 @@
-from .extension import *
+from .spritesheet_exporter import *

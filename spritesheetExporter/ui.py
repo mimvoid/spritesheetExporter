@@ -1,6 +1,5 @@
 """
-The UI that connects the backend to the frontend with a dialog window
-and displays the configuration options to the user.
+The UI that displays configuration options to the user with a dialog window.
 """
 
 from krita import Krita
@@ -12,7 +11,6 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QButtonGroup,
     QPushButton,
-    QFileDialog,
     QSpinBox,
     QDialog,
     QLineEdit,
@@ -21,12 +19,10 @@ from PyQt5.QtWidgets import (
     QRadioButton,
 )
 from builtins import i18n
+from pathlib import Path
 
-from functools import partial
-from pathlib import Path  # Operating system-independent path operations
-from typing import Optional
-from .spritesheet_exporter import (
-    SpritesheetExporter,
+from .exporter import (
+    Exporter,
     DEFAULT_SPACE,
     DEFAULT_TIME,
 )
@@ -66,7 +62,7 @@ class CommonSettings(QFormLayout):
         self.addRow(self.unique_frames)
         self.addRow(self.write_texture_atlas)
 
-    def apply_settings(self, exporter: SpritesheetExporter):
+    def apply_settings(self, exporter: Exporter):
         exporter.export_path = Path(self.directory.text(), self.name.text())
         exporter.unique_frames = self.unique_frames.isChecked()
         exporter.write_texture_atlas = self.write_texture_atlas.isChecked()
@@ -119,7 +115,7 @@ class FramesExport(QGroupBox):
         self.change_dir.setEnabled(enabled)
         self.reset_dir.setEnabled(enabled)
 
-    def apply_settings(self, exporter: SpritesheetExporter):
+    def apply_settings(self, exporter: Exporter):
         if not self.isChecked():
             exporter.export_frame_sequence = False
             return
@@ -184,7 +180,7 @@ class SpritePlacement(QFormLayout):
         self.addRow("Sprite placement:", dirs)
         self.addRow("Spritesheet size:", sizes)
 
-    def apply_settings(self, exporter: SpritesheetExporter):
+    def apply_settings(self, exporter: Exporter):
         exporter.horizontal = self.h_dir.isChecked()
 
         if self.columns.isChecked():
@@ -217,7 +213,7 @@ class SpinBoxes(QFormLayout):
         self.addRow("End:", self.end)
         self.addRow("Step:", self.step)
 
-    def apply_settings(self, exporter: SpritesheetExporter):
+    def apply_settings(self, exporter: Exporter):
         exporter.start = self.start.value()
         exporter.end = self.end.value()
         exporter.step = self.step.value()
@@ -241,7 +237,7 @@ class EdgePadding(QFormLayout):
         self.addRow("Padding right:", self.right)
         self.addRow("Padding bottom:", self.bottom)
 
-    def apply_settings(self, exp: SpritesheetExporter) -> None:
+    def apply_settings(self, exp: Exporter) -> None:
         exp.pad_left = self.left.value()
         exp.pad_top = self.top.value()
         exp.pad_right = self.right.value()
@@ -257,10 +253,7 @@ class EdgePadding(QFormLayout):
         return spin_box
 
 
-class UISpritesheetExporter:
-    exporter = SpritesheetExporter()
-    dialog = QDialog()  # the main window
-
+class Dialog(QDialog):
     common_settings = CommonSettings()
     frames = FramesExport()
     edges = EdgePadding()
@@ -273,27 +266,17 @@ class UISpritesheetExporter:
     dialog_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
 
     def __init__(self):
-        self.dialog.setWindowTitle(i18n("SpritesheetExporter"))
-        self.dialog.setWindowModality(Qt.NonModal)  # Don't block input to other windows
-        self.dialog.setMinimumSize(425, 480)
-        self.dialog.setSizeGripEnabled(True)
-
-        self.common_settings.change_dir.clicked.connect(
-            partial(self.change_dir, self.common_settings.directory)
-        )
-        self.common_settings.reset_dir.clicked.connect(self.reset_export_dir)
-
-        self.frames.change_dir.clicked.connect(
-            partial(self.change_dir, self.frames.directory)
-        )
-        self.frames.reset_dir.clicked.connect(self.reset_frames_dir)
+        super().__init__()
+        self.setWindowTitle(i18n("SpritesheetExporter"))
+        self.setWindowModality(Qt.NonModal)  # Don't block input to other windows
+        self.setMinimumSize(425, 480)
+        self.setSizeGripEnabled(True)
 
         self.layers_as_animation.setToolTip(
             "Treat each layer as a frame instead of using the animation timeline"
         )
 
-        self.dialog_buttons.accepted.connect(self.confirm_button)
-        self.dialog_buttons.rejected.connect(self.dialog.close)
+        self.dialog_buttons.rejected.connect(self.close)
 
         # Setup layouts
         spin_boxes = QHBoxLayout()
@@ -311,70 +294,8 @@ class UISpritesheetExporter:
         extras.addSpacing(10)
         extras.addLayout(spin_boxes)
 
-        root_layout = QVBoxLayout(self.dialog)  # the box holding everything
+        root_layout = QVBoxLayout(self)  # the box holding everything
         root_layout.addLayout(self.common_settings)
         root_layout.addWidget(self.frames)
         root_layout.addWidget(extra_settings)
         root_layout.addWidget(self.dialog_buttons)
-
-    def show_dialog(self):
-        if self.common_settings.directory.text() == "":
-            self.reset_export_dir()
-        if self.frames.directory.text() == "":
-            self.reset_frames_dir()
-
-        self.dialog.show()
-        self.dialog.activateWindow()
-        self.dialog.setDisabled(False)
-
-    @staticmethod
-    def current_directory() -> Optional[Path]:
-        doc = Krita.instance().activeDocument()
-        if not doc or not doc.fileName():
-            return None
-        return Path(doc.fileName()).parent
-
-    @staticmethod
-    def pick_directory_dialog(directory: str) -> str:
-        file_dialog = QFileDialog()
-        file_dialog.setWindowTitle(i18n("Choose Export Directory"))
-        file_dialog.setSizeGripEnabled(True)
-
-        # QFileDialog already seems to handle invalid directories fine
-        file_dialog.setDirectory(directory)
-
-        return file_dialog.getExistingDirectory()
-
-    @staticmethod
-    def change_dir(input: QLineEdit):
-        # Grab the output path on directory changed
-        path = UISpritesheetExporter.pick_directory_dialog(input.text())
-        if path != "":
-            input.setText(path)
-
-    def reset_export_dir(self):
-        path = UISpritesheetExporter.current_directory()
-        if path:
-            self.common_settings.directory.setText(str(path))
-
-    def reset_frames_dir(self):
-        path = UISpritesheetExporter.current_directory()
-        if path:
-            frames_dir = Path(
-                path, self.common_settings.name.text().split(".")[0] + "_sprites"
-            )
-            self.frames.directory.setText(str(frames_dir))
-
-    def confirm_button(self):
-        # Block any function calls on subsequent clicks
-        self.dialog.setDisabled(True)
-
-        self.common_settings.apply_settings(self.exporter)
-        self.frames.apply_settings(self.exporter)
-        self.placement.apply_settings(self.exporter)
-        self.frame_times.apply_settings(self.exporter)
-        self.edges.apply_settings(self.exporter)
-        self.exporter.layers_as_animation = self.layers_as_animation.isChecked()
-
-        self.exporter.export()
-        self.dialog.hide()
