@@ -3,6 +3,8 @@ The UI that displays configuration options to the user with a dialog window.
 """
 
 from krita import Krita
+from builtins import i18n
+
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QVBoxLayout,
@@ -18,13 +20,16 @@ from PyQt5.QtWidgets import (
     QDialogButtonBox,
     QRadioButton,
 )
-from builtins import i18n
+
+from typing import Optional
 from pathlib import Path
 
 from .exporter import (
-    Exporter,
+    Edges,
     DEFAULT_SPACE,
     DEFAULT_TIME,
+    FrameExport,
+    FrameTimes,
 )
 
 
@@ -67,10 +72,12 @@ class MainSettings(QFormLayout):
         self.addRow(self.unique_frames)
         self.addRow(self.write_texture_atlas)
 
-    def apply_settings(self, exporter: Exporter):
-        exporter.export_path = Path(self.directory.text(), self.name.text())
-        exporter.unique_frames = self.unique_frames.isChecked()
-        exporter.write_texture_atlas = self.write_texture_atlas.isChecked()
+    def values(self) -> tuple[Path, bool, bool]:
+        return (
+            Path(self.directory.text(), self.name.text()),
+            self.unique_frames.isChecked(),
+            self.write_texture_atlas.isChecked(),
+        )
 
 
 class FramesExport(QGroupBox):
@@ -119,20 +126,14 @@ class FramesExport(QGroupBox):
         layout.addRow(dir_layout)
         layout.addRow(self.force_new)
 
-    def apply_settings(self, exporter: Exporter):
-        if not self.isChecked():
-            exporter.export_frame_sequence = False
-            return
-
-        exporter.export_frame_sequence = True
-        exporter.base_name = self.base_name.text()
-
-        if self.custom_dir.isChecked():
-            exporter.custom_frames_dir = Path(self.directory.text())
-        else:
-            exporter.custom_frames_dir = None
-
-        exporter.force_new = self.force_new.isChecked()
+    def get_settings(self) -> Optional[FrameExport]:
+        if self.isChecked():
+            return FrameExport(
+                self.base_name.text(),
+                Path(self.directory.text()) if self.custom_dir.isChecked() else None,
+                self.force_new.isChecked(),
+            )
+        return None
 
 
 class SpritePlacement(QFormLayout):
@@ -183,15 +184,13 @@ class SpritePlacement(QFormLayout):
         self.addRow("Sprite placement:", dirs)
         self.addRow("Spritesheet size:", sizes)
 
-    def apply_settings(self, exporter: Exporter):
-        exporter.horizontal = self.h_dir.isChecked()
+    def values(self) -> tuple[bool, int, int]:
+        columns = self.size.value()
+        rows = DEFAULT_SPACE
+        if not self.columns.isChecked():
+            columns, rows = rows, columns
 
-        if self.columns.isChecked():
-            exporter.columns = self.size.value()
-            exporter.rows = DEFAULT_SPACE
-        else:
-            exporter.columns = DEFAULT_SPACE
-            exporter.rows = self.size.value()
+        return (self.h_dir.isChecked(), columns, rows)
 
 
 class SpinBoxes(QFormLayout):
@@ -215,10 +214,8 @@ class SpinBoxes(QFormLayout):
         self.addRow("End:", self.end)
         self.addRow("Step:", self.step)
 
-    def apply_settings(self, exporter: Exporter):
-        exporter.start = self.start.value()
-        exporter.end = self.end.value()
-        exporter.step = self.step.value()
+    def values(self) -> FrameTimes:
+        return FrameTimes(self.start.value(), self.end.value(), self.step.value())
 
 
 class EdgePadding(QFormLayout):
@@ -234,11 +231,10 @@ class EdgePadding(QFormLayout):
         self.right = self._add_spin_box("right")
         self.bottom = self._add_spin_box("bottom")
 
-    def apply_settings(self, exp: Exporter) -> None:
-        exp.pad_left = self.left.value()
-        exp.pad_top = self.top.value()
-        exp.pad_right = self.right.value()
-        exp.pad_bottom = self.bottom.value()
+    def values(self) -> Edges:
+        return Edges(
+            self.left.value(), self.top.value(), self.right.value(), self.bottom.value()
+        )
 
     def _add_spin_box(self, edge: str) -> QSpinBox:
         spin_box = QSpinBox(value=0, minimum=-99, maximum=99)

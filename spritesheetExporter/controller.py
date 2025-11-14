@@ -13,13 +13,12 @@ from pathlib import Path
 
 from .exporter import Exporter
 from .ui import Dialog
+from .utils import KritaVersion
 
 
 def _current_directory() -> Optional[Path]:
     doc = Krita.instance().activeDocument()
-    if doc and doc.fileName():
-        return Path(doc.fileName()).parent
-    return None
+    return Path(doc.fileName()).parent if doc and doc.fileName() else None
 
 
 def _pick_directory_dialog(directory: str) -> str:
@@ -41,8 +40,14 @@ def _change_dir(input: QLineEdit):
 
 
 class Controller:
+    @property
+    def api_version(self) -> KritaVersion:
+        """Lazy loads an analysis of available Krita API functions"""
+        if not hasattr(self, "_api_version"):
+            self._api_version = KritaVersion()
+        return self._api_version
+
     def __init__(self):
-        self.exporter = Exporter()
         self.dialog = Dialog()
 
         self.dialog.main_settings.change_dir_clicked.connect(
@@ -66,14 +71,19 @@ class Controller:
         self.dialog.activateWindow()
 
     def export(self):
-        self.dialog.main_settings.apply_settings(self.exporter)
-        self.dialog.frames.apply_settings(self.exporter)
-        self.dialog.placement.apply_settings(self.exporter)
-        self.dialog.frame_times.apply_settings(self.exporter)
-        self.dialog.edges.apply_settings(self.exporter)
-        self.exporter.layers_as_animation = self.dialog.layers_as_animation.isChecked()
+        path, unique_frames, texture_atlas = self.dialog.main_settings.values()
 
-        self.exporter.export()
+        Exporter(
+            path,
+            self.dialog.frames.get_settings(),
+            self.dialog.frame_times.values(),
+            unique_frames,
+            self.dialog.layers_as_animation.isChecked(),
+            *self.dialog.placement.values(),
+            self.dialog.edges.values(),
+            texture_atlas,
+            self.api_version,
+        ).export()
 
     def reset_export_dir(self):
         path = _current_directory()

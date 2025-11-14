@@ -5,8 +5,9 @@ The backend that handles exporting spritesheet.
 from krita import Krita, Document, Node, InfoObject
 from PyQt5.QtCore import QRect, QByteArray
 
+from dataclasses import dataclass
 from collections.abc import Iterable
-from typing import Optional
+from typing import Optional, NamedTuple
 from math import sqrt, ceil
 import json
 from pathlib import Path
@@ -19,40 +20,24 @@ DEFAULT_TIME = -1
 DEFAULT_SPACE = 0
 
 
-class Exporter:
-    export_path: Path
-    unique_frames: bool
+class Edges(NamedTuple):
+    left: int
+    top: int
+    right: int
+    bottom: int
 
-    horizontal: bool
-    columns: int
-    rows: int
 
-    start: int
-    end: int
-
-    pad_left: int
-    pad_top: int
-    pad_right: int
-    pad_bottom: int
-
-    export_frame_sequence: bool
-    custom_frames_dir: Optional[Path]
-    base_name: str
+class FrameExport(NamedTuple):
+    basename: str
+    custom_dir: Optional[Path]
     force_new: bool
 
+
+@dataclass
+class FrameTimes:
+    start: int
+    end: int
     step: int
-    layers_as_animation: bool
-    write_texture_atlas: bool
-    show_export_dialog = False
-
-    _api_version: Optional[KritaVersion] = None
-
-    @property
-    def api_version(self) -> KritaVersion:
-        """Lazy loads an analysis of available Krita API functions"""
-        if self._api_version is None:
-            self._api_version = KritaVersion()
-        return self._api_version
 
     def _check_last_keyframe(self, layer: Node, times: Iterable[int]):
         """
@@ -60,7 +45,6 @@ class Exporter:
         accordingly.
 
         @param layer A visible and animated layer
-        @param doc The document to which the layer belongs to
         @param times The frame times to check, sorted highest to lowest
         """
 
@@ -75,7 +59,6 @@ class Exporter:
         accordingly.
 
         @param layer A visible and animated layer
-        @param doc The document to which the layer belongs to
         @param times The frame times to check, sorted lowest to highest
         """
 
@@ -84,7 +67,7 @@ class Exporter:
                 self.start = min(self.start, time)
                 return
 
-    def _set_frame_times(self, doc: Document):
+    def set_frame_times(self, doc: Document, api_version: KritaVersion):
         """
         Updates the lower and upper frame time limits if they are set to default values.
         This only considers visible layers.
@@ -107,7 +90,7 @@ class Exporter:
             self.end = start_time
             return
 
-        layers = self.api_version.recurse_children(doc.rootNode())
+        layers = api_version.recurse_children(doc.rootNode())
         filtered_layers = [i for i in layers if i.visible() and i.animated()]
 
         if not filtered_layers:
@@ -144,20 +127,40 @@ class Exporter:
                     # Similar to above, the start keyframe cannot be any earlier.
                     break
 
+
+@dataclass
+class Exporter:
+    export_path: Path
+    frame_export: Optional[FrameExport]
+
+    frames: FrameTimes
+    unique_frames: bool
+    layers_as_animation: bool
+
+    horizontal: bool
+    columns: int
+    rows: int
+    pad: Edges
+
+    write_texture_atlas: bool
+    show_export_dialog = False
+
+    api_version: KritaVersion
+
     def _make_frames_dir(self):
         """
         Creates the directory to export individual frames.
         """
 
-        if self.custom_frames_dir is not None:
-            name = self.custom_frames_dir.name
-            dir = self.custom_frames_dir
+        if self.frame_export.custom_dir is not None:
+            name = self.frame_export.custom_dir.name
+            dir = self.frame_export.custom_dir
         else:
             name = self.export_path.stem + "_sprites"
             dir = self.export_path.with_name(name)
 
         if dir.exists():
-            if self.force_new:
+            if self.frame_export.force_new:
                 export_num = 0
                 dir = dir.with_name(name + "0")
 
@@ -181,10 +184,10 @@ class Exporter:
 
         root = dest.rootNode()
 
-        x = -self.pad_left
-        y = -self.pad_top
-        w = src.width() - x + self.pad_right
-        h = src.height() - y + self.pad_bottom
+        x = -self.pad.left
+        y = -self.pad.top
+        w = src.width() - x + self.pad.right
+        h = src.height() - y + self.pad.bottom
 
         pixel_set: Optional[set[QByteArray]] = set() if self.unique_frames else None
 
@@ -207,13 +210,13 @@ class Exporter:
                 new_layer.setPixelData(0, 0, w, h, pixel_data)
                 root.addChildNode(new_layer, None)
         else:
-            if self.end == DEFAULT_TIME or self.start == DEFAULT_TIME:
-                self._set_frame_times(src)
+            if self.frames.end == DEFAULT_TIME or self.frames.start == DEFAULT_TIME:
+                self.frames.set_frame_times(src, self.api_version)
 
             initial_time = src.currentTime()
 
             # Export each frame
-            for i in range(self.start, self.end + 1, self.step):
+            for i in range(self.frames.start, self.frames.end + 1, self.frames.step):
                 src.setCurrentTime(i)
 
                 # Ensure the time has been set before copying the pixel data
@@ -240,16 +243,20 @@ class Exporter:
         @param dest The document to contain the exported spritesheet
         """
 
-        width = src.width() + self.pad_left + self.pad_right
-        height = src.height() + self.pad_top + self.pad_bottom
+        width = src.width() + self.pad.left + self.pad.right
+        height = src.height() + self.pad.top + self.pad.bottom
 
-        frames_dir = self._make_frames_dir() if self.export_frame_sequence else None
+        frames_dir = self._make_frames_dir() if self.frame_export else None
         texture_atlas = [] if self.write_texture_atlas else None
 
         for i, layer in enumerate(dest.topLevelNodes()):
             if frames_dir is not None:
                 file_name = "".join(
-                    [self.base_name, str(i).zfill(3), self.export_path.suffix]
+                    [
+                        self.export_path.base_name,
+                        str(i).zfill(3),
+                        self.export_path.suffix,
+                    ]
                 )
                 layer.save(
                     str(frames_dir.joinpath(file_name)),
@@ -301,8 +308,8 @@ class Exporter:
             print("spritesheetExporter: Export spritesheet start.")
 
         # Current document info to use for the new document
-        width = doc.width() + self.pad_left + self.pad_right
-        height = doc.height() + self.pad_top + self.pad_bottom
+        width = doc.width() + self.pad.left + self.pad.right
+        height = doc.height() + self.pad.top + self.pad.bottom
 
         if debug:
             print("Source document name:", doc.name())
