@@ -1,4 +1,4 @@
-# Krita Spritesheet Exporter
+# SpritesExporter
 
 A Krita plugin to export animations as spritesheets.
 
@@ -46,15 +46,15 @@ A Krita plugin to export animations as spritesheets.
         `General > Resources`
       - Alternatively, you can open the resources folder through
         `Settings > Manage Resources > Open Resources Folder`
-    - Move `spritesheetExporter.desktop` and the `spritesheetExporter` folder into `pykrita`
+    - Move `spritesExporter.desktop` and the `spritesExporter` folder into `pykrita`
 - **Restart Krita** if it was open
 - **Activate the plugin**
   - Go to `Settings > Configure Krita > Python Plugin Manager`
-  - Check `Spritesheet Exporter`
+  - Check `Sprites Exporter`
 - **Restart Krita**
 - You can now use it through `Tools > Scripts > Export as Spritesheet`!
 
-Check [Manual.html](./spritesheetExporter/Manual.html) for more information.
+Check [Manual.html](./spritesExporter/Manual.html) for more information.
 
 ## Special Thanks
 

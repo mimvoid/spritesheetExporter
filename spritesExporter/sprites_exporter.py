@@ -1,5 +1,5 @@
 """
-Connects everything in the Spritesheet Exporter plugin to be accessed through Krita.
+Connects everything in the Sprites Exporter plugin to be accessed through Krita.
 """
 
 from krita import Krita, Extension
@@ -8,7 +8,7 @@ from builtins import Scripter
 from .controller import Controller
 
 
-class SpritesheetExporter(Extension):
+class SpritesExporter(Extension):
     def __init__(self, parent):
         """
         Always initialise the superclass.
@@ -44,4 +44,4 @@ class SpritesheetExporter(Extension):
         self._controller.show_dialog()
 
 
-Scripter.addExtension(SpritesheetExporter(Krita.instance()))
+Scripter.addExtension(SpritesExporter(Krita.instance()))
