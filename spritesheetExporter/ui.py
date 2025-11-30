@@ -197,9 +197,14 @@ class SpinBoxes(QFormLayout):
     def __init__(self):
         super().__init__()
 
-        self.start = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
-        self.end = QSpinBox(value=DEFAULT_TIME, minimum=DEFAULT_TIME, maximum=9999)
+        self.start = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
+        self.end = QSpinBox(minimum=DEFAULT_TIME, maximum=9999)
         self.step = QSpinBox(value=1, minimum=1)
+
+        # It seems that if a negative value is set in the constructor, it reverts to 0,
+        # so they're set afterward instead
+        self.start.setValue(DEFAULT_TIME)
+        self.end.setValue(DEFAULT_TIME)
 
         for spin_box in (self.start, self.end, self.step):
             spin_box.setSpecialValueText("Auto")
