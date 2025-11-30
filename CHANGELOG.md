@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 0.3.0 - 2025-11-30
+
+### Changed
+
+- Rewire UI signals (exporting is noticeably more responsive) ([`1ad3539`](/../../commit/1ad3539))
+- Lazy load dialog window ([`72d78bc`](/../../commit/72d78bc))
+- Limit start and end frame spin boxes' values to each other ([`ebe364b`](/../../commit/ebe364b))
+
+### Fixed
+
+- Fix frame spin boxes initializing with `0` instead of `Auto` ([`c12f369`](/../../commit/c12f369))
+
 ## 0.2.0 - 2025-11-12
 
 ### Changed
