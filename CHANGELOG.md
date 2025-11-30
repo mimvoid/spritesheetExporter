@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rename the plugin to **Sprites Exporter** to distinguish it from Spritesheet Exporter going forward.
+  The code has been extensively refactored, the UI overhauled, and new features added. However, the
+  name remains similar to pay homage to its origins.
 - Rewire UI signals (exporting is noticeably more responsive) ([`1ad3539`](/../../commit/1ad3539))
 - Lazy load dialog window ([`72d78bc`](/../../commit/72d78bc))
 - Limit start and end frame spin boxes' values to each other ([`ebe364b`](/../../commit/ebe364b))
