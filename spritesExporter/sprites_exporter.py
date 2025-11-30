@@ -8,6 +8,9 @@ from builtins import Scripter
 from .controller import Controller
 
 
+SPRITESHEET_EXPORTER_VERSION = "0.2.0"
+
+
 class SpritesExporter(Extension):
     def __init__(self, parent):
         """
