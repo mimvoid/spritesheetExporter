@@ -101,11 +101,6 @@ class FrameTimes:
             self.start = 0
             return
 
-        if start_time > end_time:
-            start_time, end_time = end_time, start_time  # Swap values
-            if self.step > 0:
-                self.step *= -1  # Make the step negative
-
         if def_end:
             self.end = start_time
             time_range = range(end_time, start_time - 1, -1)

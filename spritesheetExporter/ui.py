@@ -210,9 +210,20 @@ class SpinBoxes(QFormLayout):
             "Only export each 'step' numbered frame. Defaults to every frame"
         )
 
+        self.start.valueChanged.connect(self._start_value_changed)
+        self.end.valueChanged.connect(self._end_value_changed)
+
         self.addRow("Start:", self.start)
         self.addRow("End:", self.end)
         self.addRow("Step:", self.step)
+
+    def _start_value_changed(self, value: int) -> None:
+        if value > self.end.value():
+            self.end.setValue(value)
+
+    def _end_value_changed(self, value: int) -> None:
+        if value < self.start.value():
+            self.start.setValue(value)
 
     def values(self) -> FrameTimes:
         return FrameTimes(self.start.value(), self.end.value(), self.step.value())
